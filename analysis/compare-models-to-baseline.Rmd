@@ -1,0 +1,41 @@
+---
+title: "Bootstrap analysis: determine which models are better than baseline or comparator"
+author: "a name like Dorothy Vaughan"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    df_print: paged
+    code_fold: hide
+    toc: true
+    toc_float: true
+---
+
+## Introduction
+
+This is the same analysis as `determine-top-performers.Rmd`, but the `refPredIndex` for calculating the Bayes factor is set based on the baseline model. This will allow you to determine which models submitted were better than the baseline, or published reference comparator model provided by the organizers. 
+
+First, import packages for data manipulation and retrieve prediction data, gold standard data, and the template for use in the scoring code. Don't forget to set a seed!
+
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+set.seed(98109)
+
+```
+
+Read in prediction files, combine, then bootstrap the predictions + a gold standard 1000 times to calculate 1000 scores per prediction. 
+
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+
+```
+
+Use our `challengescoring` package to compute Bayes factors using a matrix of scores, setting the `refPredIndex` as the number of the column that contains the baseline/comparator prediction (the reference prediction). 
+
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+
+```
+
+Then plot boxplot of all scores, coloring the boxes by Bayes factor. 
+
+```{r echo=TRUE}
+
+
+```
