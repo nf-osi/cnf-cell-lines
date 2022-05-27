@@ -1,0 +1,15 @@
+mkdir vcf
+cd vcf
+synapse get -q "SELECT * FROM syn29350837"
+gunzip *.vcf.gz 
+sudo docker run --rm -it -v $(pwd)/vcf:/workdir:rw --entrypoint /bin/bash ce5f4da89675
+
+##in running container
+cd mskcc-vcf2maf-*
+
+perl /mskcc-vcf2maf-754d68a/vcf2maf.pl --input-vcf /workdir/FreeBayes_28NF.vcf --output-maf test.vep.maf --ref-fasta /root/.vep/homo_sapiens/102_GRCh38/Homo_sapiens.GRCh38.dna.toplevel.fa.gz --vep-path /opt/conda/envs/vcf2maf/bin/ --ncbi-build GRCh38
+
+
+for i in /vcf/*.vcf; 
+    do perl vcf2maf.pl --input-vcf {$i} --output-maf {$i}.vep.maf --ref-fasta /root/.vep/homo_sapiens/102_GRCh38/Homo_sapiens.GRCh38.dna.toplevel.fa.gz --vep-path /opt/conda/envs/vcf2maf/bin/ --ncbi-build GRCh38
+
