@@ -1,0 +1,369 @@
+---
+title: "Comparison of non-immortalized cNF primary tissue and immortalized cNF cell lines"
+author: Jineta Banerjee
+date: '`r format(Sys.time(), "%d %B, %Y")`'
+output: 
+  html_document:
+    toc: true
+    number_sections: true
+    toc_float:
+      collapsed: false
+      smooth_scroll: false
+    fig_width: 7
+    fig_height: 6
+    fig_caption: true
+    df_print: paged 
+    #code_folding: true 
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(engine.opts = list(bash = "-l")) #execute bash
+```
+
+```{r lib_synapser, echo=FALSE, eval=TRUE, results='hide', message=FALSE, warning=FALSE, include=FALSE}
+
+library(synapser)
+library(synapserutils)
+library(reticulate)
+
+library(BiocManager)
+library(gProfileR)
+library(gprofiler2)
+library(tidyverse)
+library(DT)
+library(stringr) 
+library(DESeq2)
+library(limma)
+library(edgeR)
+library(pheatmap)
+```
+
+```{r login_to_synapse, eval=TRUE, echo=FALSE, results='hide', message=FALSE, warning=FALSE, include=FALSE}
+
+## The login credentials have been stored in .synapseConfig file in the home dir. If you dont have this setup, please make the file before trying to login.
+synapser::synLogin()
+
+```
+
+
+```{r gene counts, echo=FALSE, eval=TRUE, results='hide', message=FALSE, fig.height=10, fig.width=10}
+
+# get counts file
+# entity <- synGet("syn29532377", downloadLocation = "/home/ubuntu/Data_files/CNF_wallace")
+cts <- as.data.frame(read.csv("/home/ubuntu/Data_files/CNF_wallace/salmon.merged.gene_counts.tsv", sep="\t", row.names="gene_id")) 
+colnames(cts)[2] <- "28NF"
+
+# gene to ensg mapping
+gene_2_ensg <- as.data.frame(cts$gene_name)
+gene_2_ensg$ensg <- rownames(cts)
+gene_2_ensg <- gene_2_ensg %>% unique()
+  
+# get metadata
+query <-  "SELECT * FROM syn11601459 where assay = 'rnaSeq' and fileFormat = 'sf' and name = 'quant.sf'"
+metadata <- synTableQuery(query)$asDataFrame() %>% 
+  dplyr::select(c(id,specimenID,tumorType,individualID,sex)) %>% 
+  unique() %>% 
+  dplyr::mutate(specimen = stringr::str_replace_all(specimenID, " ", "_"))
+rownames(metadata) <- metadata$specimen
+metadata$tumorType <- as.factor(metadata$tumorType)
+metadata$isCellLine <- "No"
+metadata$isCellLine[metadata$specimen %in% c("i28NF", "icNF97.2a", "icNF04.9a" , "icNF97.2b", "icNF98.4c", "icNF98.4d", "icNF00.10a", "hTERT_NF1_ipNF05.5", "hTERT_NF1_ipNF95.11b_C", "hTERT_NF1_ipNF95.6") ] <- "Yes"
+metadata$isCellLine <- as.factor(metadata$isCellLine)
+metadata$treatment <- as.factor(stringr::str_c(metadata$tumorType, "_immortalized_", metadata$isCellLine))
+
+# find out if specimenID is the right column to match 
+#colnames(cts)
+
+#check if all names match the samples
+#all(rownames(metadata) %in% colnames(cts))
+
+# match the order of samples in both matrices
+cts <- cts[, rownames(metadata)]
+#all(rownames(metadata) == colnames(cts))
+
+```
+
+## Principal component analysis of all samples
+
+```{r TMM-LCPM normalization, eval=TRUE, echo=FALSE, results='hide', message=FALSE, warning=FALSE, fig.height = 10, fig.width = 10}
+
+gene_mat<-as.matrix(cts)
+# missing<-which(apply(gene_mat,1,function(x) any(is.na(x))))
+# gene_mat<-gene_mat[-missing,]
+
+# Remove low expressed genes
+#print("Genes that passed low expression filter:")
+keepRows <- rowSums((gene_mat[,]) >= 10) >= (ncol(gene_mat[,])*0.8)
+#table(keepRows)
+gene_mat <- gene_mat[keepRows,]
+# 
+# ## avg expression filter
+# keepRows <- apply(gene_mat[],1,mean) >= 1
+# table(keepRows)
+# gene_mat <- gene_mat[keepRows,]
+
+DGE.all <-DGEList(counts=gene_mat) # function from edgeR
+
+# TMM normalization
+DGE.all <- calcNormFactors(DGE.all, method = "TMM")  # function from edgeR
+
+
+# make a normalized counts matrix for use outside of limma (PCA, etc)
+#print("Normalization factors for the first few libraries:")
+#head(DGE.all$samples, n=20)
+norm.factors <- DGE.all$samples[,"norm.factors"]
+normCounts.all <- as.data.frame(t(t(DGE.all$counts)/norm.factors))
+DGE.all <- DGEList(counts=normCounts.all)
+
+# transform into logCPM counts first
+lcpm.normCounts <- edgeR::cpm(DGE.all, log=TRUE, prior.count = 1)
+
+## PCA to look at how the datasets differ
+library(ggfortify)
+pca_res <- prcomp(t(lcpm.normCounts),scale=TRUE) 
+var_explained <- pca_res$sdev^2/sum(pca_res$sdev^2)
+results <- as.data.frame(pca_res$x)
+results$specimen <- rownames(results)
+anno <- metadata
+  
+plot_data <- merge(results, anno)
+
+plot_data %>% 
+     ggplot(aes(x=PC1,
+               y=PC2)) + 
+    geom_point(aes(colour = as.factor(specimen), shape = as.factor(treatment)), size=5) +
+    geom_label( 
+    data=plot_data %>% filter(specimen == "hTERT_NF1_ipNF95.11b_C"), # Filter data first
+    aes(label=specimenID),
+    nudge_x = 0, nudge_y = 5, 
+    check_overlap = T) +
+    theme_bw() + 
+  labs(x=paste0("PC1: ",round(var_explained[1]*100,1),"%"),
+       y=paste0("PC2: ",round(var_explained[2]*100,1),"%")) +
+  theme(legend.position="right")
+
+
+```
+
+&nbsp;
+
+## Differential gene expression analysis in cNF vs icNF samples:
+
+TMM normalization was used to prepare the dataset for differential gene expression analysis. We then used limma-edgeR based analysis to find differentially expressed genes in the TMM normalized dataset. 
+
+
+```{r DEG1, echo=F, eval= TRUE, results='hide', message=FALSE, warning=FALSE, fig.height=20, fig.width=20}
+
+#Select annotations
+annotes=metadata %>%
+  dplyr::select(specimen,sex,treatment) %>%
+  unique()
+annotes$tumorType <- as.factor(annotes$treatment)
+annotes$sex <-as.factor(annotes$sex)
+rownames(annotes)<-annotes$specimen
+
+## DEG analysis using limma, Glimma and EdgeR
+
+limma_object <- DGE.all  # make new DGElist object so that we dont change the original object
+
+#make design matrix
+annotes <- annotes %>% 
+  dplyr::filter(specimen %in% colnames(gene_mat)) 
+ordered_annotes <- annotes[match(colnames(gene_mat), annotes$specimen),]
+group_object <- ordered_annotes$treatment
+batch <- ordered_annotes$studyName
+sex <- ordered_annotes$sex
+
+design_new <- model.matrix(~0+group_object)
+colnames(design_new) <- gsub("group_object", "", colnames(design_new)) # modify the colnames to remove "group_object" addition
+colnames(design_new) <- colnames(design_new) %>% 
+  stringr::str_remove_all(pattern = "\"") %>% 
+  stringr::str_remove_all(pattern = "\\[" ) %>% 
+  stringr::str_remove_all(pattern = "\\]" )
+colnames(design_new) <- gsub(" ", "_", colnames(design_new))
+
+```
+
+&nbsp;
+ 
+  The volcano plot below shows genes that are significantly overexpressed in cNF compared to icNF (logFC > 2) in red. The dots in blue refer to genes that are significantly underexpressed in icNF compared to cNF (logFC < -2). The thresholds of fold change have been arbitrarily chosen for ease of visualization in the volcano plot shown below.
+  
+  The heatmap below the volcano plot shows the expression differences of the top 100 differentially expressed genes between cNF and icNF samples. The cluster tree shows splitting of the differentially expressed genes into 2 main clusters according to expression patterns in the comparison groups.
+
+```{r DEG2, echo=F, eval= TRUE, results='hide', message=FALSE, warning=FALSE, fig.height=20, fig.width=20, fig.cap=""}
+
+contr.matrix <- makeContrasts(
+   cNFvsicNF = Cutaneous_Neurofibroma_immortalized_No - Cutaneous_Neurofibroma_immortalized_Yes,
+   levels = colnames(design_new))
+#contr.matrix
+
+## Using voom to make Elist object
+#print("Visualizing the mean variance trend of the RNASeq dataset")
+voom_object <- voomWithQualityWeights(limma_object, design_new, plot=FALSE) # removing heteroscadisticity
+#voom_object$genes <- genes_unique
+
+## Run DGE analysis using lmFit
+
+fit_new <- lmFit(voom_object, design_new)
+contrast_fit_new <- contrasts.fit(fit_new, contrasts=contr.matrix)
+fit <- eBayes(contrast_fit_new, trend=TRUE)
+
+results_fit_new <- decideTests(fit)
+#summary(results_fit_new)
+
+#vennDiagram(results_fit_new[,c(1)], circle.col=c("turquoise", "salmon"))
+cNFvsicNF <- topTreat(fit, coef=1, n=Inf)
+cNFvsicNF$Genes <- rownames(cNFvsicNF)
+cNFvsicNF_ordered <- cNFvsicNF[order(cNFvsicNF$adj.P.Val),]
+
+## Volcano Plots:
+
+cNFvsicNF_ordered <-cNFvsicNF_ordered %>%
+  mutate(threshold = ifelse(logFC >= 2 & adj.P.Val <= 0.05,"A", 
+                            ifelse(logFC<=-2 & adj.P.Val <= 0.05, 
+                                   "B", "C")))
+
+#png(filename = "volcanoplot_mpnst_pnf.png", width = 1200, height = 1200)
+ggplot(data=cNFvsicNF_ordered, aes(x=logFC, y=-log10(adj.P.Val))) +
+  geom_point(aes(colour = threshold), alpha=0.3, size=8) +
+  xlim(c(-10, 10)) + ylim(c(0, 2.5)) +
+  xlab("log2 fold change") + ylab("-log10 BH adjusted Pvalue") +
+  scale_colour_manual(values = c("A"= "red", "B"="blue",  "C"= "black")) +
+  # geom_text(aes(label = ifelse(threshold != "C", 
+  #                              as.character(Genes), ""), 
+  #               colour = as.factor(threshold)), size = 10, angle = 45, hjust = -0.25) +
+  theme_bw()+
+  theme(legend.text = element_text(size=20), #element_text(size=8),
+              axis.text.x  = element_text(size=40, angle = 0),
+              axis.text.y = element_text(size=40),
+              text = element_text(size=40),
+              strip.text.x = element_text(size = 40),
+              legend.position="none",
+              panel.grid = element_blank(),
+              panel.background = element_rect(fill = "white")) 
+#dev.off()
+
+annotes=metadata %>%
+  dplyr::select(specimen,sex,treatment) %>%
+  dplyr::filter(treatment %in% c(levels(metadata$treatment)[1], levels(metadata$treatment)[2])) %>% 
+  unique
+rownames(annotes)<-annotes$specimen
+
+res <- lcpm.normCounts %>% 
+  as.data.frame() %>% 
+  dplyr::filter(rownames(lcpm.normCounts) %in% cNFvsicNF_ordered$Genes[1:100]) %>% 
+  dplyr::select(matches(annotes$specimen))
+res$ensg <- rownames(res)
+res_gene_name <- merge(res,gene_2_ensg, by = "ensg")
+rownames(res_gene_name) <- res_gene_name$`cts$gene_name`
+
+
+heatmap_1 <- pheatmap(res_gene_name %>% 
+                        dplyr::select(-c(ensg, `cts$gene_name`)),
+                       labels_col=rep("",ncol(res)),
+                       fontsize_row = 10,
+                       clustering_method = 'ward.D2',
+                       annotation_col = dplyr::select(annotes, -specimen),
+                       treeheight_row = 30,
+                       cutree_rows = 4,
+                       width = 16, 
+                       height = 8)
+heatmap_1
+
+plot(heatmap_1$tree_row, cex = 0.7)
+abline(h=30, col="red", lty = 2, lwd = 2)
+heatmap_cluster <- sort(cutree(heatmap_1$tree_row, h=30))
+
+
+```
+
+&nbsp;
+
+### Pathway analysis
+
+  The clusters of genes identified above were then subjected to pathway analysis using _gprofiler2_ which uses hypergeometric test to examine enrichment of particular cellular pathways in the gene lists provided. 
+  
+  The Manhattan plots show the enrichment scores (logPvalues) for pathways in various databases (e.g. KEGG, REAC, GO:MF, GO:CC etc) that represent the genes in each of the identified clusters (Clusters 1, 2, and 3). 
+  
+  The table below each Manhattan plot shows the list of KEGG, REAC, and WP pathways enriched in that specific cluster along with the pValue of enrichment.
+
+```{r pathway, echo=F, eval= TRUE, fig.height=10, fig.width=10}
+
+
+
+make_gprofiler_plots <- function(cluster_genes){
+  
+plot_df <- gprofiler2::gost(cluster_genes, organism = "hsapiens", 
+  ordered_query = F, significant = T, exclude_iea = F,
+  correction_method = "fdr", 
+  domain_scope = "annotated")
+
+t <- plot_df$result
+terms_below_500 <- t[(t$term_size < 500 & t$source == "REAC" | 
+                        t$term_size < 500 & t$source == "KEGG" | 
+                        t$term_size < 500 & t$source == "`GO:CC`" | 
+                        t$term_size < 500 & t$source == "`GO:BP`" | 
+                        t$term_size < 500 & t$source == "WP"),]
+
+plot_manhattan <- gprofiler2::gostplot(plot_df,
+                     capped = FALSE,
+                     interactive = T,
+                     pal = c(`GO:MF` = "#dc3912", 
+                             `GO:BP` = "#ff9900", 
+                             `GO:CC` = "#109618", 
+                             KEGG ="#dd4477", 
+                             REAC = "#3366cc", 
+                             WP = "#0099c6", 
+                             TF = "#5574a6", 
+                             MIRNA = "#22aa99", 
+                             HPA = "#6633cc", 
+                             CORUM = "#66aa00", 
+                             HP = "#990099"
+                             ))
+
+
+library(DT)
+table <- DT::datatable(terms_below_500[, c("source","term_name", "term_size", "query_size", "intersection_size", "p_value")])
+
+my_list <- list(plot_manhattan, table)
+return(my_list)
+  
+}
+
+
+cluster_gene_df <- as.data.frame(heatmap_cluster)
+cluster_gene_df$gene <- row.names(cluster_gene_df)
+# cluster_gene_df <- merge(cluster_gene_df_pnf, gene_2_ensg, by = "ensg")
+# cluster_gene_df$gene <- cluster_gene_df[,3]
+
+print("Enrichment Plot of Cluster 1 genes")
+output <- make_gprofiler_plots(cluster_gene_df$gene[cluster_gene_df$heatmap_cluster == 1])
+
+output[[1]]
+output[[2]]
+
+
+print("Enrichment Plot of Cluster 2 genes")
+output <- make_gprofiler_plots(cluster_gene_df$gene[cluster_gene_df$heatmap_cluster == 2])
+
+output[[1]]
+output[[2]]
+
+print("Enrichment Plot of Cluster 3 genes")
+output <- make_gprofiler_plots(cluster_gene_df$gene[cluster_gene_df$heatmap_cluster == 3])
+
+output[[1]]
+output[[2]]
+
+print("Enrichment Plot of Cluster 4 genes")
+output <- make_gprofiler_plots(cluster_gene_df$gene[cluster_gene_df$heatmap_cluster == 4])
+
+output[[1]]
+output[[2]]
+
+
+```
+
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
