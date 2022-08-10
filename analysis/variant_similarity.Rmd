@@ -28,9 +28,11 @@ Other than the weird results with 28NF, the remainder of the results are encoura
 ```{r echo=TRUE, message=FALSE, warning=FALSE}
 library(synapser)
 library(tidyverse)
+library(viridis)
+library(pheatmap)
 synLogin()
 
-child <- synGetChildren('syn33620997')$asList()
+child <- synGetChildren('syn34227782')$asList()
 ids <- map(child, "id") %>% unlist()
 
 jac_temp <- sapply(ids, function(x){
@@ -46,18 +48,55 @@ jac <- jac_temp %>%
   add_column("comparison" = nms %>% stringr::str_remove("_jaccard.tsv")) %>% 
   separate(comparison, into = c('cl1', 'cl2'), sep = "_")  
 
-jac %>% rowwise %>% filter(grepl(glue::glue("i{cl1}"), cl2)) %>% 
+table_of_immortalized_cells <- jac %>% rowwise %>% filter(grepl(glue::glue("i{cl1}"), cl2)) %>% 
   select(cl1, cl2, n_intersections, jaccard) %>% 
   set_names("Cell Line 1", "Cell Line 2", "Number of overlapping variants", "Jaccard similarity (0 to 1)")
 
+table_of_immortalized_cells
+
+```
+
+Let's also make a heatmap of the pairwise Jaccard similarity. 
+
+```{r}
 jac %>% 
   select(jaccard, cl1, cl2) %>% 
   pivot_wider(id_cols = cl1, names_from = cl2, values_from = jaccard) %>% 
   column_to_rownames("cl1") %>% 
-  pheatmap::pheatmap()
+  pheatmap::pheatmap(color = viridis::rocket(100, begin = 1, end = 0))
 
 
 ```
 
+Finally, let's plot the individual similarities based on whether or not the 
 
-.4
+```{r}
+related_pairs <- jac %>% 
+  mutate(related = case_when(stringr::str_extract(cl1, "\\d\\d") != stringr::str_extract(cl2, "\\d\\d") ~ FALSE,
+                             stringr::str_extract(cl1, "\\d\\d") == stringr::str_extract(cl2, "\\d\\d") ~ TRUE)
+         )  %>% #extracts matching numerals which indicates sample relatedness (e.g. 28cNF is from same patient as i28cNF, etc) and determines if they match, whether or not the samples are related
+  filter(jaccard < 1) %>%  #remove self-self pairs
+  select(cl1, cl2, n_intersections, jaccard, related) %>% 
+  set_names("Cell Line 1", "Cell Line 2", "Number of overlapping variants", "Jaccard similarity (0 to 1)", "Related?")
+
+
+ggplot(related_pairs, aes(x = `Related?`, y = `Jaccard similarity (0 to 1)`)) +
+  geom_boxplot() +
+  ggbeeswarm::geom_quasirandom(alpha = 0.4) +
+  theme_bw() + 
+  ylim(c(0, 0.5))
+
+related_pairs_2 <- mutate(related_pairs, Comparison = glue::glue("{`Cell Line 1`}_{`Cell Line 2`}")) %>% 
+  mutate(Comparison = forcats::fct_reorder(Comparison, -`Jaccard similarity (0 to 1)`))
+
+
+ggplot(related_pairs_2, aes(x = Comparison, y = `Jaccard similarity (0 to 1)`, fill =  `Related?`)) +
+  geom_bar(stat = "identity") +
+  theme_bw()
+
+```
+
+```{r}
+sessionInfo()
+```
+

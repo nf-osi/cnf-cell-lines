@@ -17,6 +17,26 @@
 
 
 ## concordance, version 1 of files in syn33620997
+# for i in Strelka*filtered.vcf.gz
+# do
+#   for j in Strelka*filtered.vcf.gz
+#   do
+#     ic=${i#Strelka_} 
+#     ic=${ic%_variants*gz} 
+#     
+#     jc=${j#Strelka_} 
+#     jc=${jc%_variants*gz} 
+#     
+#     echo ${ic}_${jc} comparison
+#     
+#     bedtools jaccard -a $i -b $j > ${ic}_${jc}_jaccard.tsv
+#     
+#   done
+# done
+# 
+# for i in *_jaccard.tsv; do synapse store $i --parentId syn33620997; done
+
+## revised analysis with stringent -r filter, version 1 of files in syn33620997
 for i in Strelka*filtered.vcf.gz
 do
   for j in Strelka*filtered.vcf.gz
@@ -29,13 +49,12 @@ do
     
     echo ${ic}_${jc} comparison
     
-    bedtools jaccard -a $i -b $j > ${ic}_${jc}_jaccard.tsv
+    bedtools jaccard -a $i -b $j -f 0.9 -r > ${ic}_${jc}_jaccard.tsv
     
   done
 done
 
-for i in *_jaccard.tsv; do synapse store $i --parentId syn33620997; done
-
+for i in *_jaccard.tsv; do synapse store $i --parentId syn34227782; done
 
 
 for i in Strelka*NF1.vcf.gz
@@ -57,24 +76,4 @@ done
 
 for i in *_NF1_jaccard.tsv; do synapse store $i --parentId syn33702533; done
 
-## revised analysis with stringent -r filter, version 2 of files in syn33620997
-d
-for i in Strelka*filtered.vcf.gz
-do
-  for j in Strelka*filtered.vcf.gz
-  do
-    ic=${i#Strelka_} 
-    ic=${ic%_variants*gz} 
-    
-    jc=${j#Strelka_} 
-    jc=${jc%_variants*gz} 
-    
-    echo ${ic}_${jc} comparison
-    
-    bedtools jaccard -a $i -b $j -f 0.9 -r > ${ic}_${jc}_jaccard.tsv
-    
-  done
-done
-
-for i in *_jaccard.tsv; do synapse store $i --parentId syn33620997; done
 
