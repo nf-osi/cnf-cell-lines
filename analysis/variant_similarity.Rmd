@@ -30,6 +30,7 @@ library(synapser)
 library(tidyverse)
 library(viridis)
 library(pheatmap)
+library(gt)
 synLogin()
 
 child <- synGetChildren('syn34227782')$asList()
@@ -49,10 +50,12 @@ jac <- jac_temp %>%
   separate(comparison, into = c('cl1', 'cl2'), sep = "_")  
 
 table_of_immortalized_cells <- jac %>% rowwise %>% filter(grepl(glue::glue("i{cl1}"), cl2)) %>% 
-  select(cl1, cl2, n_intersections, jaccard) %>% 
-  set_names("Cell Line 1", "Cell Line 2", "Number of overlapping variants", "Jaccard similarity (0 to 1)")
+  select(cl1, cl2, jaccard) %>% 
+  mutate(jaccard = round(jaccard, 3)) %>% 
+  set_names("Primary cell line", "Immortalized cell line", "Jaccard index")
 
-table_of_immortalized_cells
+gt::gt(table_of_immortalized_cells)
+
 
 ```
 
