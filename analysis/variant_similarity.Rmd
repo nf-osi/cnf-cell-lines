@@ -71,7 +71,7 @@ jac %>%
 
 ```
 
-Finally, let's plot the individual similarities based on whether or not the 
+Finally, let's plot the individual similarities based on whether or not they are biologically related or not. 
 
 ```{r}
 related_pairs <- jac %>% 
