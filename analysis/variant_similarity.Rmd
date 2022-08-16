@@ -95,7 +95,8 @@ related_pairs_2 <- mutate(related_pairs, Comparison = glue::glue("{`Cell Line 1`
 
 ggplot(related_pairs_2, aes(x = Comparison, y = `Jaccard similarity (0 to 1)`, fill =  `Related?`)) +
   geom_bar(stat = "identity") +
-  theme_bw()
+  theme_bw()+
+  theme(axis.text.x  = element_text(angle = 45))
 
 ```
 
