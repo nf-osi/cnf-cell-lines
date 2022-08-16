@@ -1,0 +1,106 @@
+---
+title: "Jaccard similarity of filtered variants in all cell lines"
+author: Robert Allaway
+date: '`r format(Sys.time(), "%d %B, %Y")`'
+output: 
+  html_document:
+    toc: true
+    number_sections: true
+    toc_float:
+      collapsed: false
+      smooth_scroll: false
+    fig_width: 7
+    fig_height: 6
+    fig_caption: true
+    df_print: paged 
+    #code_folding: true 
+---
+
+To assess the similarities in mutational profiles across the cell lines, we can calculate the pairwise Jaccard similarity for all cell lines. First, we used the Strelka2 to call the variants, and then applied filters to further refine the list of variants (see filter_vcfs.sh). 
+
+Then, the concordance/Jaccard similarity was calculated using `bedtools jaccard` (see assess_concordance.sh). 
+In this script, we retrieve the previously calculated jaccard metrics from Synapse, combine them into one file, and reformat so that we can plot a heatmap where 1 = identical variants and 0 = no overlapping variants. 
+
+Notably, cell line 28NF had no variants that passed our filters. The QC data for the sequencing runs did not indicate any major issues with the data, so this suggests that no exome variants were detected. However, this is pretty unlikely, so it's possible that the data are indeed problematic. We should revisit this analysis with the whole genome sequencing variants to see if we observe a similar phenomenon.
+
+Other than the weird results with 28NF, the remainder of the results are encouraging. All of the immortalized cell lines cluster with their non-immortalized counterparts, and the cell lines from the same patient (e.g. 97.2, 98.4) cluster together. This indicates that the immortalized cells maintain some level of genetic fidelity despite the genetic changes required to engineer these cell lines. 
+
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+library(synapser)
+library(tidyverse)
+library(viridis)
+library(pheatmap)
+library(gt)
+synLogin()
+
+child <- synGetChildren('syn34227782')$asList()
+ids <- map(child, "id") %>% unlist()
+
+jac_temp <- sapply(ids, function(x){
+ file <- synGet(x)$path %>% read_tsv(.) %>% unlist
+}) %>% t() %>% as_tibble()
+
+nms <- sapply(ids, function(x){
+ file <- synGet(x)
+ nm <- file$properties$name
+}) 
+
+jac <- jac_temp %>% 
+  add_column("comparison" = nms %>% stringr::str_remove("_jaccard.tsv")) %>% 
+  separate(comparison, into = c('cl1', 'cl2'), sep = "_")  
+
+table_of_immortalized_cells <- jac %>% rowwise %>% filter(grepl(glue::glue("i{cl1}"), cl2)) %>% 
+  select(cl1, cl2, jaccard) %>% 
+  mutate(jaccard = round(jaccard, 3)) %>% 
+  set_names("Primary cell line", "Immortalized cell line", "Jaccard index")
+
+gt::gt(table_of_immortalized_cells)
+
+
+```
+
+Let's also make a heatmap of the pairwise Jaccard similarity. 
+
+```{r}
+jac %>% 
+  select(jaccard, cl1, cl2) %>% 
+  pivot_wider(id_cols = cl1, names_from = cl2, values_from = jaccard) %>% 
+  column_to_rownames("cl1") %>% 
+  pheatmap::pheatmap(color = viridis::rocket(100, begin = 1, end = 0))
+
+
+```
+
+Finally, let's plot the individual similarities based on whether or not they are biologically related or not. 
+
+```{r}
+related_pairs <- jac %>% 
+  mutate(related = case_when(stringr::str_extract(cl1, "\\d\\d") != stringr::str_extract(cl2, "\\d\\d") ~ FALSE,
+                             stringr::str_extract(cl1, "\\d\\d") == stringr::str_extract(cl2, "\\d\\d") ~ TRUE)
+         )  %>% #extracts matching numerals which indicates sample relatedness (e.g. 28cNF is from same patient as i28cNF, etc) and determines if they match, whether or not the samples are related
+  filter(jaccard < 1) %>%  #remove self-self pairs
+  select(cl1, cl2, n_intersections, jaccard, related) %>% 
+  set_names("Cell Line 1", "Cell Line 2", "Number of overlapping variants", "Jaccard similarity (0 to 1)", "Related?")
+
+
+ggplot(related_pairs, aes(x = `Related?`, y = `Jaccard similarity (0 to 1)`)) +
+  geom_boxplot() +
+  ggbeeswarm::geom_quasirandom(alpha = 0.4) +
+  theme_bw() + 
+  ylim(c(0, 0.5))
+
+related_pairs_2 <- mutate(related_pairs, Comparison = glue::glue("{`Cell Line 1`}_{`Cell Line 2`}")) %>% 
+  mutate(Comparison = forcats::fct_reorder(Comparison, -`Jaccard similarity (0 to 1)`))
+
+
+ggplot(related_pairs_2, aes(x = Comparison, y = `Jaccard similarity (0 to 1)`, fill =  `Related?`)) +
+  geom_bar(stat = "identity") +
+  theme_bw()+
+  theme(axis.text.x  = element_text(angle = 45))
+
+```
+
+```{r}
+sessionInfo()
+```
+

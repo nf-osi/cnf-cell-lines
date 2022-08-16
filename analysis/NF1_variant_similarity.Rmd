@@ -1,0 +1,60 @@
+---
+title: "Jaccard similarity of NF1 variants in all cell lines"
+author: Robert Allaway
+date: '`r format(Sys.time(), "%d %B, %Y")`'
+output: 
+  html_document:
+    toc: true
+    number_sections: true
+    toc_float:
+      collapsed: false
+      smooth_scroll: false
+    fig_width: 7
+    fig_height: 6
+    fig_caption: true
+    df_print: paged 
+    #code_folding: true 
+---
+
+Note: this is similar to variant_similarity.Rmd, except we are only considering *NF1* variants. 
+
+To assess the similarities in mutational profiles across the cell lines, we can calculate the pairwise Jaccard similarity for all cell lines. First, we used the Strelka2 to call the variants, and then applied filters to further refine the list of variants (see filter_vcfs.sh) and reduce the list to only variants in the NF1 region. 
+
+Then, the concordance/Jaccard similarity was calculated using `bedtools jaccard` (see assess_concordance.sh). 
+In this script, we retrieve the previously calculated jaccard metrics from Synapse, combine them into one file, and reformat so that we can plot a heatmap where 1 = identical variants and 0 = no overlapping variants. 
+
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+library(synapser)
+library(tidyverse)
+synLogin()
+
+child <- synGetChildren('syn33702533')$asList()
+ids <- map(child, "id") %>% unlist()
+
+jac_temp <- sapply(ids, function(x){
+ file <- synGet(x)$path %>% read_tsv(.) %>% unlist
+}) %>% t() %>% as_tibble()
+
+nms <- sapply(ids, function(x){
+ file <- synGet(x)
+ nm <- file$properties$name
+}) 
+
+jac <- jac_temp %>% 
+  add_column("comparison" = nms %>% stringr::str_remove("_NF1_jaccard.tsv")) %>% 
+  separate(comparison, into = c('cl1', 'cl2'), sep = "_")  
+
+jac %>% rowwise %>% filter(grepl(glue::glue("i{cl1}"), cl2)) %>% 
+  select(cl1, cl2, n_intersections, `union-intersection`, jaccard) %>% 
+  set_names("Cell Line 1", "Cell Line 2", "Number of overlapping variants", "Total variants", "Jaccard similarity (0 to 1)")
+
+jac %>% 
+  select(jaccard, cl1, cl2) %>% 
+  pivot_wider(id_cols = cl1, names_from = cl2, values_from = jaccard) %>% 
+  column_to_rownames("cl1") %>% 
+  pheatmap::pheatmap()
+
+
+```
+
+
