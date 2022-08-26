@@ -14,7 +14,7 @@
 ## Get vcfs. Place in $HOME/vcfs
 
 ##then run docker container like so: 
-##docker run -v $HOME/vcfs:/workdir/vcfs:rw -v $HOME/vep:/workdir/vep:ro -v $HOME/Homo_sapiens_GATK_GRCh38/Sequence/WholeGenomeFasta:/workdir/fasta:ro -it --entrypoint /bin/bash nfosi/vcf2maf
+##docker run -v $HOME/vcfs:/workdir/vcfs:rw -v $HOME/vep:/workdir/vep:ro -v $HOME/Homo_sapiens_GATK_GRCh38/Sequence/WholeGenomeFasta:/workdir/fasta:ro -v $HOME/mafs:/workdir/mafs -it --entrypoint /bin/bash nfosi/vcf2maf
 
 cd /mskcc-vcf2maf-*
 
@@ -28,5 +28,5 @@ for i in /workdir/vcfs/*.vcf; do
 	ic=$(basename ${i})
     ic=${ic%.Strelka.filtered.vcf} 
 
-    perl vcf2maf.pl --input-vcf $i --output-maf /workdir/${ic}.vep.maf --ref-fasta /workdir/fasta/Homo_sapiens_assembly38.fasta --vep-path /root/miniconda3/envs/vcf2maf/bin --vep-data /workdir/vep --ncbi-build GRCh38
+    perl vcf2maf.pl --input-vcf $i --output-maf /workdir/mafs/${ic}.vep.maf --ref-fasta /workdir/fasta/Homo_sapiens_assembly38.fasta --vep-path /root/miniconda3/envs/vcf2maf/bin --vep-data /workdir/vep --ncbi-build GRCh38
 done
