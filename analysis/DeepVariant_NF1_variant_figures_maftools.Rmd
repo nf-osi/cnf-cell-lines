@@ -77,13 +77,18 @@ Let's plot a summary of each _cohort_.
 
 ```{r message=FALSE, warning=FALSE}
 
+p <- plotmafSummary(primary_mafs, showBarcodes = T, textSize = 0.5)
+p
+
 pdf('../figures/DeepVariant_primaryMafSummary.pdf')
-plotmafSummary(primary_mafs, showBarcodes = T, textSize = 0.5)
+p
 dev.off()
 
+p <- plotmafSummary(immortalized_mafs, showBarcodes = T, textSize = 0.5)
 
+p
 pdf('../figures/DeepVariant_immortalizedMafSummary.pdf')
-plotmafSummary(immortalized_mafs, showBarcodes = T, textSize = 0.5)
+p
 dev.off()
 
 ```
@@ -91,11 +96,13 @@ dev.off()
 ## Look at NF1 variants
 
 ```{r message=FALSE, warning=FALSE}
+p <- lollipopPlot2(primary_mafs, immortalized_mafs, gene = 'NF1',m1_label = 'all', m2_label = 'all',labPosAngle = 45, labPosSize = 0.75, domainLabelSize = 0.5, m1_name = "Primary", m2_name = "Immortalized")
+
+p
 
 pdf("../figures/DeepVariant_NF1_variants.pdf")
-lollipopPlot2(primary_mafs, immortalized_mafs, gene = 'NF1',m1_label = 'all', m2_label = 'all',labPosAngle = 45, labPosSize = 0.75, domainLabelSize = 0.5, m1_name = "Primary", m2_name = "Immortalized")
+p
 dev.off()
-
 ```
 
 
