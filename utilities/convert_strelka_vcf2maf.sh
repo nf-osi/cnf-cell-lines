@@ -23,10 +23,21 @@ for i in /workdir/vcfs/*.gz; do
 	gunzip $i 
 done
 
-for i in /workdir/vcfs/*.vcf; do
+for i in /workdir/vcfs/Strelka*.vcf; do
 	echo $i 
 	ic=$(basename ${i})
-    ic=${ic%.Strelka.filtered.vcf} 
+	ic=${ic%.Strelka.filtered.vcf}  ##change this to trim to your sample ID as necessary
+	
+	echo $ic
+	perl vcf2maf.pl --input-vcf $i --output-maf /workdir/mafs/${ic}.vep.maf --ref-fasta /workdir/fasta/Homo_sapiens_assembly38.fasta --vep-path /root/miniconda3/envs/vcf2maf/bin --vep-data /workdir/vep --ncbi-build GRCh38 --tumor-id $ic
+done
 
-    perl vcf2maf.pl --input-vcf $i --output-maf /workdir/mafs/${ic}.vep.maf --ref-fasta /workdir/fasta/Homo_sapiens_assembly38.fasta --vep-path /root/miniconda3/envs/vcf2maf/bin --vep-data /workdir/vep --ncbi-build GRCh38
+
+for i in /workdir/vcfs/DeepVariant*.vcf; do
+	echo $i 
+	ic=$(basename ${i})
+	ic=${ic%.vcf}  ##change this to trim to your sample ID as necessary
+	
+	echo $ic
+	#perl vcf2maf.pl --input-vcf $i --output-maf /workdir/mafs/${ic}.vep.maf --ref-fasta /workdir/fasta/Homo_sapiens_assembly38.fasta --vep-path /root/miniconda3/envs/vcf2maf/bin --vep-data /workdir/vep --ncbi-build GRCh38 --tumor-id $ic
 done
