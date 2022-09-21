@@ -1,0 +1,109 @@
+---
+title: "Variants detected by DeepVariant in cNF cell lines -- WGS"
+author: Robert Allaway
+date: '`r format(Sys.time(), "%d %B, %Y")`'
+output: 
+  html_document:
+    toc: true
+    number_sections: true
+    toc_float:
+      collapsed: false
+      smooth_scroll: false
+    fig_width: 7
+    fig_height: 6
+    fig_caption: true
+    df_print: paged 
+    #code_folding: true 
+---
+
+
+
+```{r}
+library(maftools)
+library(tidyverse)
+library(synapser)
+synLogin()
+
+child <- synGetChildren('syn36233528')$asList()
+ids <- map(child, "id") %>% unlist()
+```
+
+
+```{r}
+library(maftools)
+library(tidyverse)
+library(synapser)
+synLogin()
+
+child <- synGetChildren('syn36233528')$asList()
+ids <- map(child, "id") %>% unlist()
+
+maf_paths <- lapply(ids, synGet)
+
+```
+
+This snippet simply extracts the NF1 variant calls from the larger mafs, and merges them into one maf. The individual mafs are too large to easily read into memory at once, and for this analysis we only care about the NF1 gene.
+
+```{r}
+
+mafs <- lapply(maf_paths, function(i){
+  foo <- i$path
+  celline <- basename(foo) %>% stringr::str_remove(".vep.maf")
+  maf <- maftools::read.maf(foo)
+  nf1_maf <- maftools::subsetMaf(maf, genes = "NF1")
+  rm(maf) ##to save on memory...
+
+  # write.mafSummary(maf = nf1_maf, basename = celline)
+  nf1_maf
+})
+
+merged_maf <- merge_mafs(mafs)
+
+primary_mafs <- subsetMaf(merged_maf, tsb = c("28cNF","cNF00.10a","cNF04.9a","cNF97.2a","cNF97.2b","cNF98.4c","cNF98.4d"))
+
+immortalized_mafs <- subsetMaf(merged_maf, tsb = c("i28cNF","icNF00.10a","icNF04.9a","icNF97.2a","icNF97.2b","icNF98.4c","icNF98.4d"))
+
+```
+
+## Look at NF1 variants
+
+```{r message=FALSE, warning=FALSE}
+lollipopPlot2(primary_mafs, immortalized_mafs, gene = 'NF1',m1_label = 'all', m2_label = 'all',labPosAngle = 45, labPosSize = 0.75, domainLabelSize = 0.5, m1_name = "Primary", m2_name = "Immortalized")
+
+pdf("../figures/DeepVariant_NF1_variants_WGS.pdf")
+lollipopPlot2(primary_mafs, immortalized_mafs, gene = 'NF1',m1_label = 'all', m2_label = 'all',labPosAngle = 45, labPosSize = 0.75, domainLabelSize = 0.5, m1_name = "Primary", m2_name = "Immortalized")
+dev.off()
+```
+
+## Table of NF1 variants
+
+```{r message=FALSE, warning=FALSE}
+
+merged_maf@data %>% 
+  filter(Hugo_Symbol == "NF1") %>% 
+  select(Tumor_Sample_Barcode, Variant_Classification, Variant_Type, 
+         HGVSc, HGVSp_Short,
+         dbSNP_RS, SIFT, PolyPhen, IMPACT) %>% 
+  set_names(c("Cell Line", "Variant Classification", "Variant Type",
+          "Genetic Change", "Protein Change", "dbSNP ID", "SIFT", "PolyPhen", "IMPACT")) %>% 
+  write_csv("../figures/DeepVariant_NF1_variants_WGS.csv")
+
+merged_maf@data %>% 
+  filter(Hugo_Symbol == "NF1") %>% 
+  select(Tumor_Sample_Barcode, Variant_Classification, Variant_Type, 
+         HGVSc, HGVSp_Short,
+         dbSNP_RS, SIFT, PolyPhen, IMPACT) %>% 
+  set_names(c("Cell Line", "Variant Classification", "Variant Type",
+          "Genetic Change", "Protein Change", "dbSNP ID", "SIFT", "PolyPhen", "IMPACT"))
+```
+
+
+```{r message=FALSE, warning=FALSE}
+
+sessionInfo()
+
+```
+
+
+
+
