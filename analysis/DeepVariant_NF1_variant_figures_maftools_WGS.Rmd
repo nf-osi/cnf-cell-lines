@@ -68,12 +68,10 @@ immortalized_mafs <- subsetMaf(merged_maf, tsb = c("i28cNF","icNF00.10a","icNF04
 ## Look at NF1 variants
 
 ```{r message=FALSE, warning=FALSE}
-p <- lollipopPlot2(primary_mafs, immortalized_mafs, gene = 'NF1',m1_label = 'all', m2_label = 'all',labPosAngle = 45, labPosSize = 0.75, domainLabelSize = 0.5, m1_name = "Primary", m2_name = "Immortalized")
-
-p
+lollipopPlot2(primary_mafs, immortalized_mafs, gene = 'NF1',m1_label = 'all', m2_label = 'all',labPosAngle = 45, labPosSize = 0.75, domainLabelSize = 0.5, m1_name = "Primary", m2_name = "Immortalized")
 
 pdf("../figures/DeepVariant_NF1_variants_WGS.pdf")
-p
+lollipopPlot2(primary_mafs, immortalized_mafs, gene = 'NF1',m1_label = 'all', m2_label = 'all',labPosAngle = 45, labPosSize = 0.75, domainLabelSize = 0.5, m1_name = "Primary", m2_name = "Immortalized")
 dev.off()
 ```
 
