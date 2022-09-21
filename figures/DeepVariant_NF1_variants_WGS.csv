@@ -1,0 +1,25 @@
+Cell Line,Variant Classification,Variant Type,Genetic Change,Protein Change,dbSNP ID,SIFT,PolyPhen,IMPACT
+28cNF,Nonsense_Mutation,SNP,c.3233C>G,p.S1078*,rs2067122696,,,HIGH
+cNF00.10a,Nonsense_Mutation,SNP,c.5861C>A,p.S1954*,,,,HIGH
+cNF04.9a,Splice_Site,SNP,c.5268+2T>G,p.X1756_splice,rs1555533416,,,HIGH
+cNF04.9a,Frame_Shift_Del,DEL,c.7391_7407del,p.T2464Kfs*13,novel,,,HIGH
+cNF97.2a,Frame_Shift_Del,DEL,c.233del,p.N78Ifs*7,rs1438566555,,,HIGH
+cNF97.2a,Frame_Shift_Del,DEL,c.1929del,p.M643Ifs*45,rs1567846742,,,HIGH
+cNF97.2b,Frame_Shift_Del,DEL,c.233del,p.N78Ifs*7,rs1438566555,,,HIGH
+cNF97.2b,Splice_Site,DEL,c.1392+2_1392+3del,p.X464_splice,novel,,,HIGH
+cNF98.4c,Splice_Site,SNP,c.6704+1G>T,p.X2235_splice,rs1060500376,,,HIGH
+cNF98.4d,Frame_Shift_Del,DEL,c.6316del,p.V2106Lfs*5,,,,HIGH
+cNF98.4d,Splice_Site,SNP,c.6704+1G>T,p.X2235_splice,rs1060500376,,,HIGH
+i28cNF,Nonsense_Mutation,SNP,c.3158C>G,p.S1053*,rs1597717610,,,HIGH
+i28cNF,Nonsense_Mutation,SNP,c.3233C>G,p.S1078*,rs2067122696,,,HIGH
+icNF00.10a,Nonsense_Mutation,SNP,c.5861C>A,p.S1954*,,,,HIGH
+icNF04.9a,Splice_Site,SNP,c.5268+2T>G,p.X1756_splice,rs1555533416,,,HIGH
+icNF04.9a,Nonsense_Mutation,SNP,c.5503C>T,p.Q1835*,,,,HIGH
+icNF04.9a,Frame_Shift_Del,DEL,c.7391_7407del,p.T2464Kfs*13,novel,,,HIGH
+icNF97.2a,Frame_Shift_Del,DEL,c.233del,p.N78Ifs*7,rs1438566555,,,HIGH
+icNF97.2a,Frame_Shift_Del,DEL,c.1929del,p.M643Ifs*45,rs1567846742,,,HIGH
+icNF97.2b,Frame_Shift_Del,DEL,c.233del,p.N78Ifs*7,rs1438566555,,,HIGH
+icNF97.2b,Splice_Site,DEL,c.1392+2_1392+3del,p.X464_splice,novel,,,HIGH
+icNF98.4c,Splice_Site,SNP,c.6704+1G>T,p.X2235_splice,rs1060500376,,,HIGH
+icNF98.4d,Frame_Shift_Del,DEL,c.6316del,p.V2106Lfs*5,,,,HIGH
+icNF98.4d,Splice_Site,SNP,c.6704+1G>T,p.X2235_splice,rs1060500376,,,HIGH

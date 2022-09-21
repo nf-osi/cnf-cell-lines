@@ -34,7 +34,7 @@ ids <- map(child, "id") %>% unlist()
 maf_paths <- lapply(ids, synGet)
 
 mafs <- lapply(maf_paths, function(x){
-  maftools::read.maf(x$path)
+  maftools::read.maf(x$path, rmFlags=100)
 })
 
 merged_maf <- merge_mafs(mafs)
@@ -96,12 +96,10 @@ dev.off()
 ## Look at NF1 variants
 
 ```{r message=FALSE, warning=FALSE}
-p <- lollipopPlot2(primary_mafs, immortalized_mafs, gene = 'NF1',m1_label = 'all', m2_label = 'all',labPosAngle = 45, labPosSize = 0.75, domainLabelSize = 0.5, m1_name = "Primary", m2_name = "Immortalized")
-
-p
+lollipopPlot2(primary_mafs, immortalized_mafs, gene = 'NF1',m1_label = 'all', m2_label = 'all',labPosAngle = 45, labPosSize = 0.75, domainLabelSize = 0.5, m1_name = "Primary", m2_name = "Immortalized")
 
 pdf("../figures/DeepVariant_NF1_variants.pdf")
-p
+lollipopPlot2(primary_mafs, immortalized_mafs, gene = 'NF1',m1_label = 'all', m2_label = 'all',labPosAngle = 45, labPosSize = 0.75, domainLabelSize = 0.5, m1_name = "Primary", m2_name = "Immortalized")
 dev.off()
 ```
 
@@ -118,6 +116,14 @@ merged_maf@data %>%
   set_names(c("Cell Line", "Variant Classification", "Variant Type",
           "Genetic Change", "Protein Change", "dbSNP ID", "SIFT", "PolyPhen", "IMPACT")) %>% 
   write_csv("../figures/DeepVariant_NF1_variants.csv")
+
+merged_maf@data %>% 
+  filter(Hugo_Symbol == "NF1") %>% 
+  select(Tumor_Sample_Barcode, Variant_Classification, Variant_Type, 
+         HGVSc, HGVSp_Short,
+         dbSNP_RS, SIFT, PolyPhen, IMPACT) %>% 
+  set_names(c("Cell Line", "Variant Classification", "Variant Type",
+          "Genetic Change", "Protein Change", "dbSNP ID", "SIFT", "PolyPhen", "IMPACT"))
 
 ```
 
