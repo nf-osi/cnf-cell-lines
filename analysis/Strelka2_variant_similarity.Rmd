@@ -21,9 +21,11 @@ To assess the similarities in mutational profiles across the cell lines, we can 
 Then, the concordance/Jaccard similarity was calculated using `bedtools jaccard` (see assess_concordance.sh). 
 In this script, we retrieve the previously calculated jaccard metrics from Synapse, combine them into one file, and reformat so that we can plot a heatmap where 1 = identical variants and 0 = no overlapping variants. 
 
-Notably, cell line 28NF had no variants that passed our filters. The QC data for the sequencing runs did not indicate any major issues with the data, so this suggests that no exome variants were detected. However, this is pretty unlikely, so it's possible that the data are indeed problematic. We should revisit this analysis with the whole genome sequencing variants to see if we observe a similar phenomenon.
+**note: the struck-through section below was actually an error identified in code review, and is not accurate**
 
-Other than the weird results with 28NF, the remainder of the results are encouraging. All of the immortalized cell lines cluster with their non-immortalized counterparts, and the cell lines from the same patient (e.g. 97.2, 98.4) cluster together. This indicates that the immortalized cells maintain some level of genetic fidelity despite the genetic changes required to engineer these cell lines. 
+~~Notably, cell line 28NF had no variants that passed our filters. The QC data for the sequencing runs did not indicate any major issues with the data, so this suggests that no exome variants were detected. However, this is pretty unlikely, so it's possible that the data are indeed problematic. We should revisit this analysis with the whole genome sequencing variants to see if we observe a similar phenomenon.~~
+
+<s>Other than the weird results with 28NF, the remainder of</s> the results are encouraging. All of the immortalized cell lines cluster with their non-immortalized counterparts, and the cell lines from the same patient (e.g. 97.2, 98.4) cluster together. This indicates that the immortalized cells maintain some level of genetic fidelity despite the genetic changes required to engineer these cell lines. 
 
 ```{r echo=TRUE, message=FALSE, warning=FALSE}
 library(synapser)
