@@ -228,7 +228,7 @@ cNFvsicNF_ordered <-cNFvsicNF_ordered %>%
 ggplot(data=cNFvsicNF_ordered, aes(x=logFC, y=-log10(adj.P.Val))) +
   geom_point(aes(colour = threshold), alpha=0.3, size=8) +
   xlim(c(-10, 10)) + ylim(c(0, 2.5)) +
-  xlab("log2 fold change") + ylab("-log10 BH adjusted Pvalue") +
+ xlab(expression(log[2]*" fold change")) + ylab(expression(-log[10]*" BH adjusted p-value"))
   scale_colour_manual(values = c("A"= "red", "B"="blue",  "C"= "black")) +
   # geom_text(aes(label = ifelse(threshold != "C", 
   #                              as.character(Genes), ""), 
