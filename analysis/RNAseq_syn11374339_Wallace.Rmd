@@ -1,5 +1,5 @@
 ---
-title: "Comparison of non-immortalized cNF primary tissue and immortalized cNF cell lines"
+title: "Comparison of gene expression from non-immortalized cNF primary cells and immortalized cNF cell lines"
 author: Jineta Banerjee
 date: '`r format(Sys.time(), "%d %B, %Y")`'
 output: 
