@@ -223,7 +223,7 @@ colnames(design_new) <- gsub(" ", "_", colnames(design_new))
 
 &nbsp;
  
-  The volcano plot below shows genes that are significantly overexpressed in cNF compared to icNF with a log fold change > 2 in red. The dots in blue refer to genes that are significantly underexpressed in icNF compared to cNF with a log fold change < -2. The thresholds of fold change have been arbitrarily chosen for ease of visualization in the volcano plot shown below.
+  The volcano plot below shows genes that are significantly overexpressed in cNF compared to icNF with a log fold change > 2 in red. The dots in blue refer to genes that are significantly underexpressed in cNF compared to icNF with a log fold change < -2. The thresholds of fold change have been arbitrarily chosen for ease of visualization in the volcano plot shown below.
 
 ```{r DEG2_volcano_plot, echo=FALSE, eval=TRUE, results='hide', message=FALSE, warning=FALSE, fig.height=20, fig.width=20, fig.cap=""}
 
