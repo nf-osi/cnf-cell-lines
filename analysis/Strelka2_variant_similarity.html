@@ -2771,15 +2771,16 @@ div.tocify {
 
 <h1 class="title toc-ignore">Jaccard similarity of filtered variants in all cell lines</h1>
 <h4 class="author">Robert Allaway</h4>
-<h4 class="date">16 August, 2022</h4>
+<h4 class="date">22 September, 2022</h4>
 
 </div>
 
 
 <p>To assess the similarities in mutational profiles across the cell lines, we can calculate the pairwise Jaccard similarity for all cell lines. First, we used the Strelka2 to call the variants, and then applied filters to further refine the list of variants (see filter_vcfs.sh).</p>
 <p>Then, the concordance/Jaccard similarity was calculated using <code>bedtools jaccard</code> (see assess_concordance.sh). In this script, we retrieve the previously calculated jaccard metrics from Synapse, combine them into one file, and reformat so that we can plot a heatmap where 1 = identical variants and 0 = no overlapping variants.</p>
-<p>Notably, cell line 28NF had no variants that passed our filters. The QC data for the sequencing runs did not indicate any major issues with the data, so this suggests that no exome variants were detected. However, this is pretty unlikely, so it’s possible that the data are indeed problematic. We should revisit this analysis with the whole genome sequencing variants to see if we observe a similar phenomenon.</p>
-<p>Other than the weird results with 28NF, the remainder of the results are encouraging. All of the immortalized cell lines cluster with their non-immortalized counterparts, and the cell lines from the same patient (e.g. 97.2, 98.4) cluster together. This indicates that the immortalized cells maintain some level of genetic fidelity despite the genetic changes required to engineer these cell lines.</p>
+<p><strong>note: the struck-through section below was actually an error identified in code review, and is not accurate</strong></p>
+<p><del>Notably, cell line 28NF had no variants that passed our filters. The QC data for the sequencing runs did not indicate any major issues with the data, so this suggests that no exome variants were detected. However, this is pretty unlikely, so it’s possible that the data are indeed problematic. We should revisit this analysis with the whole genome sequencing variants to see if we observe a similar phenomenon.</del></p>
+<p><s>Other than the weird results with 28NF, the remainder of</s> the results are encouraging. All of the immortalized cell lines cluster with their non-immortalized counterparts, and the cell lines from the same patient (e.g. 97.2, 98.4) cluster together. This indicates that the immortalized cells maintain some level of genetic fidelity despite the genetic changes required to engineer these cell lines.</p>
 <pre class="r"><code>library(synapser)
 library(tidyverse)
 library(viridis)
@@ -2793,153 +2794,9 @@ ids &lt;- map(child, &quot;id&quot;) %&gt;% unlist()
 
 jac_temp &lt;- sapply(ids, function(x){
  file &lt;- synGet(x)$path %&gt;% read_tsv(.) %&gt;% unlist
-}) %&gt;% t() %&gt;% as_tibble()</code></pre>
-<pre><code>## 
-Downloading  [####################]100.00%   76.0bytes/76.0bytes (60.8kB/s) cNF00.10a_cNF00.10a_jaccard.tsv Done...    
-Downloading  [####################]100.00%   82.0bytes/82.0bytes (209.5kB/s) cNF00.10a_cNF04.9a_jaccard.tsv Done...    
-Downloading  [####################]100.00%   82.0bytes/82.0bytes (198.7kB/s) cNF00.10a_cNF97.2a_jaccard.tsv Done...    
-Downloading  [####################]100.00%   82.0bytes/82.0bytes (198.5kB/s) cNF00.10a_cNF97.2b_jaccard.tsv Done...    
-Downloading  [####################]100.00%   82.0bytes/82.0bytes (181.0kB/s) cNF00.10a_cNF98.4c_jaccard.tsv Done...    
-Downloading  [####################]100.00%   81.0bytes/81.0bytes (191.3kB/s) cNF00.10a_cNF98.4d_jaccard.tsv Done...    
-Downloading  [####################]100.00%   83.0bytes/83.0bytes (224.1kB/s) cNF00.10a_icNF00.10a_jaccard.tsv Done...    
-Downloading  [####################]100.00%   82.0bytes/82.0bytes (219.2kB/s) cNF00.10a_icNF04.9a_jaccard.tsv Done...    
-Downloading  [####################]100.00%   82.0bytes/82.0bytes (220.5kB/s) cNF00.10a_icNF97.2a_jaccard.tsv Done...    
-Downloading  [####################]100.00%   82.0bytes/82.0bytes (230.2kB/s) cNF00.10a_icNF97.2b_jaccard.tsv Done...    
-Downloading  [####################]100.00%   82.0bytes/82.0bytes (232.4kB/s) cNF00.10a_icNF98.4c_jaccard.tsv Done...    
-Downloading  [####################]100.00%   81.0bytes/81.0bytes (213.4kB/s) cNF00.10a_icNF98.4d_jaccard.tsv Done...    
-Downloading  [####################]100.00%   82.0bytes/82.0bytes (224.4kB/s) cNF04.9a_cNF00.10a_jaccard.tsv Done...    
-Downloading  [####################]100.00%   76.0bytes/76.0bytes (207.1kB/s) cNF04.9a_cNF04.9a_jaccard.tsv Done...    
-Downloading  [####################]100.00%   81.0bytes/81.0bytes (215.9kB/s) cNF04.9a_cNF97.2a_jaccard.tsv Done...    
-Downloading  [####################]100.00%   82.0bytes/82.0bytes (222.7kB/s) cNF04.9a_cNF97.2b_jaccard.tsv Done...    
-Downloading  [####################]100.00%   82.0bytes/82.0bytes (224.5kB/s) cNF04.9a_cNF98.4c_jaccard.tsv Done...    
-Downloading  [####################]100.00%   82.0bytes/82.0bytes (220.7kB/s) cNF04.9a_cNF98.4d_jaccard.tsv Done...    
-Downloading  [####################]100.00%   82.0bytes/82.0bytes (217.0kB/s) cNF04.9a_icNF00.10a_jaccard.tsv Done...    
-Downloading  [####################]100.00%   83.0bytes/83.0bytes (221.0kB/s) cNF04.9a_icNF04.9a_jaccard.tsv Done...    
-Downloading  [####################]100.00%   82.0bytes/82.0bytes (219.7kB/s) cNF04.9a_icNF97.2a_jaccard.tsv Done...    
-Downloading  [####################]100.00%   82.0bytes/82.0bytes (230.0kB/s) cNF04.9a_icNF97.2b_jaccard.tsv Done...    
-Downloading  [####################]100.00%   82.0bytes/82.0bytes (229.4kB/s) cNF04.9a_icNF98.4c_jaccard.tsv Done...    
-Downloading  [####################]100.00%   82.0bytes/82.0bytes (214.2kB/s) cNF04.9a_icNF98.4d_jaccard.tsv Done...    
-Downloading  [####################]100.00%   82.0bytes/82.0bytes (198.4kB/s) cNF97.2a_cNF00.10a_jaccard.tsv Done...    
-Downloading  [####################]100.00%   81.0bytes/81.0bytes (220.9kB/s) cNF97.2a_cNF04.9a_jaccard.tsv Done...    
-Downloading  [####################]100.00%   76.0bytes/76.0bytes (215.4kB/s) cNF97.2a_cNF97.2a_jaccard.tsv Done...    
-Downloading  [####################]100.00%   83.0bytes/83.0bytes (216.1kB/s) cNF97.2a_cNF97.2b_jaccard.tsv Done...    
-Downloading  [####################]100.00%   82.0bytes/82.0bytes (222.6kB/s) cNF97.2a_cNF98.4c_jaccard.tsv Done...    
-Downloading  [####################]100.00%   83.0bytes/83.0bytes (233.3kB/s) cNF97.2a_cNF98.4d_jaccard.tsv Done...    
-Downloading  [####################]100.00%   82.0bytes/82.0bytes (227.4kB/s) cNF97.2a_icNF00.10a_jaccard.tsv Done...    
-Downloading  [####################]100.00%   83.0bytes/83.0bytes (223.1kB/s) cNF97.2a_icNF04.9a_jaccard.tsv Done...    
-Downloading  [####################]100.00%   83.0bytes/83.0bytes (235.4kB/s) cNF97.2a_icNF97.2a_jaccard.tsv Done...    
-Downloading  [####################]100.00%   83.0bytes/83.0bytes (231.9kB/s) cNF97.2a_icNF97.2b_jaccard.tsv Done...    
-Downloading  [####################]100.00%   82.0bytes/82.0bytes (236.9kB/s) cNF97.2a_icNF98.4c_jaccard.tsv Done...    
-Downloading  [####################]100.00%   82.0bytes/82.0bytes (213.0kB/s) cNF97.2a_icNF98.4d_jaccard.tsv Done...    
-Downloading  [####################]100.00%   82.0bytes/82.0bytes (226.2kB/s) cNF97.2b_cNF00.10a_jaccard.tsv Done...    
-Downloading  [####################]100.00%   82.0bytes/82.0bytes (217.4kB/s) cNF97.2b_cNF04.9a_jaccard.tsv Done...    
-Downloading  [####################]100.00%   83.0bytes/83.0bytes (226.3kB/s) cNF97.2b_cNF97.2a_jaccard.tsv Done...    
-Downloading  [####################]100.00%   76.0bytes/76.0bytes (204.1kB/s) cNF97.2b_cNF97.2b_jaccard.tsv Done...    
-Downloading  [####################]100.00%   82.0bytes/82.0bytes (226.9kB/s) cNF97.2b_cNF98.4c_jaccard.tsv Done...    
-Downloading  [####################]100.00%   82.0bytes/82.0bytes (223.2kB/s) cNF97.2b_cNF98.4d_jaccard.tsv Done...    
-Downloading  [####################]100.00%   82.0bytes/82.0bytes (225.4kB/s) cNF97.2b_icNF00.10a_jaccard.tsv Done...    
-Downloading  [####################]100.00%   82.0bytes/82.0bytes (214.3kB/s) cNF97.2b_icNF04.9a_jaccard.tsv Done...    
-Downloading  [####################]100.00%   83.0bytes/83.0bytes (234.5kB/s) cNF97.2b_icNF97.2a_jaccard.tsv Done...    
-Downloading  [####################]100.00%   83.0bytes/83.0bytes (225.4kB/s) cNF97.2b_icNF97.2b_jaccard.tsv Done...    
-Downloading  [####################]100.00%   82.0bytes/82.0bytes (223.2kB/s) cNF97.2b_icNF98.4c_jaccard.tsv Done...    
-Downloading  [####################]100.00%   82.0bytes/82.0bytes (228.8kB/s) cNF97.2b_icNF98.4d_jaccard.tsv Done...    
-Downloading  [####################]100.00%   82.0bytes/82.0bytes (221.4kB/s) cNF98.4c_cNF00.10a_jaccard.tsv Done...    
-Downloading  [####################]100.00%   82.0bytes/82.0bytes (221.3kB/s) cNF98.4c_cNF04.9a_jaccard.tsv Done...    
-Downloading  [####################]100.00%   82.0bytes/82.0bytes (222.4kB/s) cNF98.4c_cNF97.2a_jaccard.tsv Done...    
-Downloading  [####################]100.00%   82.0bytes/82.0bytes (219.5kB/s) cNF98.4c_cNF97.2b_jaccard.tsv Done...    
-Downloading  [####################]100.00%   76.0bytes/76.0bytes (204.9kB/s) cNF98.4c_cNF98.4c_jaccard.tsv Done...    
-Downloading  [####################]100.00%   82.0bytes/82.0bytes (203.8kB/s) cNF98.4c_cNF98.4d_jaccard.tsv Done...    
-Downloading  [####################]100.00%   82.0bytes/82.0bytes (221.3kB/s) cNF98.4c_icNF00.10a_jaccard.tsv Done...    
-Downloading  [####################]100.00%   82.0bytes/82.0bytes (229.3kB/s) cNF98.4c_icNF04.9a_jaccard.tsv Done...    
-Downloading  [####################]100.00%   82.0bytes/82.0bytes (224.2kB/s) cNF98.4c_icNF97.2a_jaccard.tsv Done...    
-Downloading  [####################]100.00%   82.0bytes/82.0bytes (227.4kB/s) cNF98.4c_icNF97.2b_jaccard.tsv Done...    
-Downloading  [####################]100.00%   83.0bytes/83.0bytes (194.8kB/s) cNF98.4c_icNF98.4c_jaccard.tsv Done...    
-Downloading  [####################]100.00%   83.0bytes/83.0bytes (181.2kB/s) cNF98.4c_icNF98.4d_jaccard.tsv Done...    
-Downloading  [####################]100.00%   81.0bytes/81.0bytes (157.4kB/s) cNF98.4d_cNF00.10a_jaccard.tsv Done...    
-Downloading  [####################]100.00%   82.0bytes/82.0bytes (215.4kB/s) cNF98.4d_cNF04.9a_jaccard.tsv Done...    
-Downloading  [####################]100.00%   83.0bytes/83.0bytes (187.6kB/s) cNF98.4d_cNF97.2a_jaccard.tsv Done...    
-Downloading  [####################]100.00%   82.0bytes/82.0bytes (164.6kB/s) cNF98.4d_cNF97.2b_jaccard.tsv Done...    
-Downloading  [####################]100.00%   82.0bytes/82.0bytes (173.7kB/s) cNF98.4d_cNF98.4c_jaccard.tsv Done...    
-Downloading  [####################]100.00%   76.0bytes/76.0bytes (191.6kB/s) cNF98.4d_cNF98.4d_jaccard.tsv Done...    
-Downloading  [####################]100.00%   81.0bytes/81.0bytes (161.2kB/s) cNF98.4d_icNF00.10a_jaccard.tsv Done...    
-Downloading  [####################]100.00%   83.0bytes/83.0bytes (181.3kB/s) cNF98.4d_icNF04.9a_jaccard.tsv Done...    
-Downloading  [####################]100.00%   82.0bytes/82.0bytes (188.3kB/s) cNF98.4d_icNF97.2a_jaccard.tsv Done...    
-Downloading  [####################]100.00%   82.0bytes/82.0bytes (190.5kB/s) cNF98.4d_icNF97.2b_jaccard.tsv Done...    
-Downloading  [####################]100.00%   83.0bytes/83.0bytes (185.0kB/s) cNF98.4d_icNF98.4c_jaccard.tsv Done...    
-Downloading  [####################]100.00%   83.0bytes/83.0bytes (252.6kB/s) cNF98.4d_icNF98.4d_jaccard.tsv Done...    
-Downloading  [####################]100.00%   83.0bytes/83.0bytes (212.3kB/s) icNF00.10a_cNF00.10a_jaccard.tsv Done...    
-Downloading  [####################]100.00%   82.0bytes/82.0bytes (218.2kB/s) icNF00.10a_cNF04.9a_jaccard.tsv Done...    
-Downloading  [####################]100.00%   82.0bytes/82.0bytes (223.8kB/s) icNF00.10a_cNF97.2a_jaccard.tsv Done...    
-Downloading  [####################]100.00%   82.0bytes/82.0bytes (193.0kB/s) icNF00.10a_cNF97.2b_jaccard.tsv Done...    
-Downloading  [####################]100.00%   82.0bytes/82.0bytes (223.8kB/s) icNF00.10a_cNF98.4c_jaccard.tsv Done...    
-Downloading  [####################]100.00%   81.0bytes/81.0bytes (219.7kB/s) icNF00.10a_cNF98.4d_jaccard.tsv Done...    
-Downloading  [####################]100.00%   76.0bytes/76.0bytes (205.6kB/s) icNF00.10a_icNF00.10a_jaccard.tsv Done...    
-Downloading  [####################]100.00%   81.0bytes/81.0bytes (215.2kB/s) icNF00.10a_icNF04.9a_jaccard.tsv Done...    
-Downloading  [####################]100.00%   82.0bytes/82.0bytes (227.2kB/s) icNF00.10a_icNF97.2a_jaccard.tsv Done...    
-Downloading  [####################]100.00%   82.0bytes/82.0bytes (203.6kB/s) icNF00.10a_icNF97.2b_jaccard.tsv Done...    
-Downloading  [####################]100.00%   82.0bytes/82.0bytes (223.8kB/s) icNF00.10a_icNF98.4c_jaccard.tsv Done...    
-Downloading  [####################]100.00%   82.0bytes/82.0bytes (207.1kB/s) icNF00.10a_icNF98.4d_jaccard.tsv Done...    
-Downloading  [####################]100.00%   82.0bytes/82.0bytes (223.6kB/s) icNF04.9a_cNF00.10a_jaccard.tsv Done...    
-Downloading  [####################]100.00%   83.0bytes/83.0bytes (226.8kB/s) icNF04.9a_cNF04.9a_jaccard.tsv Done...    
-Downloading  [####################]100.00%   83.0bytes/83.0bytes (218.3kB/s) icNF04.9a_cNF97.2a_jaccard.tsv Done...    
-Downloading  [####################]100.00%   82.0bytes/82.0bytes (221.1kB/s) icNF04.9a_cNF97.2b_jaccard.tsv Done...    
-Downloading  [####################]100.00%   82.0bytes/82.0bytes (225.1kB/s) icNF04.9a_cNF98.4c_jaccard.tsv Done...    
-Downloading  [####################]100.00%   83.0bytes/83.0bytes (217.6kB/s) icNF04.9a_cNF98.4d_jaccard.tsv Done...    
-Downloading  [####################]100.00%   81.0bytes/81.0bytes (212.5kB/s) icNF04.9a_icNF00.10a_jaccard.tsv Done...    
-Downloading  [####################]100.00%   76.0bytes/76.0bytes (202.4kB/s) icNF04.9a_icNF04.9a_jaccard.tsv Done...    
-Downloading  [####################]100.00%   82.0bytes/82.0bytes (215.9kB/s) icNF04.9a_icNF97.2a_jaccard.tsv Done...    
-Downloading  [####################]100.00%   82.0bytes/82.0bytes (220.0kB/s) icNF04.9a_icNF97.2b_jaccard.tsv Done...    
-Downloading  [####################]100.00%   82.0bytes/82.0bytes (212.4kB/s) icNF04.9a_icNF98.4c_jaccard.tsv Done...    
-Downloading  [####################]100.00%   81.0bytes/81.0bytes (215.6kB/s) icNF04.9a_icNF98.4d_jaccard.tsv Done...    
-Downloading  [####################]100.00%   82.0bytes/82.0bytes (220.7kB/s) icNF97.2a_cNF00.10a_jaccard.tsv Done...    
-Downloading  [####################]100.00%   82.0bytes/82.0bytes (213.0kB/s) icNF97.2a_cNF04.9a_jaccard.tsv Done...    
-Downloading  [####################]100.00%   83.0bytes/83.0bytes (189.8kB/s) icNF97.2a_cNF97.2a_jaccard.tsv Done...    
-Downloading  [####################]100.00%   83.0bytes/83.0bytes (173.2kB/s) icNF97.2a_cNF97.2b_jaccard.tsv Done...    
-Downloading  [####################]100.00%   82.0bytes/82.0bytes (224.8kB/s) icNF97.2a_cNF98.4c_jaccard.tsv Done...    
-Downloading  [####################]100.00%   82.0bytes/82.0bytes (261.0kB/s) icNF97.2a_cNF98.4d_jaccard.tsv Done...    
-Downloading  [####################]100.00%   82.0bytes/82.0bytes (222.9kB/s) icNF97.2a_icNF00.10a_jaccard.tsv Done...    
-Downloading  [####################]100.00%   81.0bytes/81.0bytes (214.3kB/s) icNF97.2a_icNF04.9a_jaccard.tsv Done...    
-Downloading  [####################]100.00%   76.0bytes/76.0bytes (178.8kB/s) icNF97.2a_icNF97.2a_jaccard.tsv Done...    
-Downloading  [####################]100.00%   83.0bytes/83.0bytes (209.3kB/s) icNF97.2a_icNF97.2b_jaccard.tsv Done...    
-Downloading  [####################]100.00%   82.0bytes/82.0bytes (223.9kB/s) icNF97.2a_icNF98.4c_jaccard.tsv Done...    
-Downloading  [####################]100.00%   82.0bytes/82.0bytes (225.6kB/s) icNF97.2a_icNF98.4d_jaccard.tsv Done...    
-Downloading  [####################]100.00%   82.0bytes/82.0bytes (222.7kB/s) icNF97.2b_cNF00.10a_jaccard.tsv Done...    
-Downloading  [####################]100.00%   82.0bytes/82.0bytes (226.8kB/s) icNF97.2b_cNF04.9a_jaccard.tsv Done...    
-Downloading  [####################]100.00%   83.0bytes/83.0bytes (211.0kB/s) icNF97.2b_cNF97.2a_jaccard.tsv Done...    
-Downloading  [####################]100.00%   83.0bytes/83.0bytes (228.6kB/s) icNF97.2b_cNF97.2b_jaccard.tsv Done...    
-Downloading  [####################]100.00%   82.0bytes/82.0bytes (230.2kB/s) icNF97.2b_cNF98.4c_jaccard.tsv Done...    
-Downloading  [####################]100.00%   82.0bytes/82.0bytes (224.2kB/s) icNF97.2b_cNF98.4d_jaccard.tsv Done...    
-Downloading  [####################]100.00%   82.0bytes/82.0bytes (215.0kB/s) icNF97.2b_icNF00.10a_jaccard.tsv Done...    
-Downloading  [####################]100.00%   82.0bytes/82.0bytes (228.3kB/s) icNF97.2b_icNF04.9a_jaccard.tsv Done...    
-Downloading  [####################]100.00%   83.0bytes/83.0bytes (235.8kB/s) icNF97.2b_icNF97.2a_jaccard.tsv Done...    
-Downloading  [####################]100.00%   76.0bytes/76.0bytes (210.3kB/s) icNF97.2b_icNF97.2b_jaccard.tsv Done...    
-Downloading  [####################]100.00%   82.0bytes/82.0bytes (228.2kB/s) icNF97.2b_icNF98.4c_jaccard.tsv Done...    
-Downloading  [####################]100.00%   82.0bytes/82.0bytes (225.3kB/s) icNF97.2b_icNF98.4d_jaccard.tsv Done...    
-Downloading  [####################]100.00%   82.0bytes/82.0bytes (216.8kB/s) icNF98.4c_cNF00.10a_jaccard.tsv Done...    
-Downloading  [####################]100.00%   82.0bytes/82.0bytes (231.6kB/s) icNF98.4c_cNF04.9a_jaccard.tsv Done...    
-Downloading  [####################]100.00%   82.0bytes/82.0bytes (227.6kB/s) icNF98.4c_cNF97.2a_jaccard.tsv Done...    
-Downloading  [####################]100.00%   82.0bytes/82.0bytes (225.6kB/s) icNF98.4c_cNF97.2b_jaccard.tsv Done...    
-Downloading  [####################]100.00%   83.0bytes/83.0bytes (229.4kB/s) icNF98.4c_cNF98.4c_jaccard.tsv Done...    
-Downloading  [####################]100.00%   83.0bytes/83.0bytes (228.3kB/s) icNF98.4c_cNF98.4d_jaccard.tsv Done...    
-Downloading  [####################]100.00%   82.0bytes/82.0bytes (227.1kB/s) icNF98.4c_icNF00.10a_jaccard.tsv Done...    
-Downloading  [####################]100.00%   82.0bytes/82.0bytes (215.4kB/s) icNF98.4c_icNF04.9a_jaccard.tsv Done...    
-Downloading  [####################]100.00%   82.0bytes/82.0bytes (208.6kB/s) icNF98.4c_icNF97.2a_jaccard.tsv Done...    
-Downloading  [####################]100.00%   82.0bytes/82.0bytes (209.9kB/s) icNF98.4c_icNF97.2b_jaccard.tsv Done...    
-Downloading  [####################]100.00%   76.0bytes/76.0bytes (203.5kB/s) icNF98.4c_icNF98.4c_jaccard.tsv Done...    
-Downloading  [####################]100.00%   83.0bytes/83.0bytes (232.7kB/s) icNF98.4c_icNF98.4d_jaccard.tsv Done...    
-Downloading  [####################]100.00%   82.0bytes/82.0bytes (225.4kB/s) icNF98.4d_cNF00.10a_jaccard.tsv Done...    
-Downloading  [####################]100.00%   82.0bytes/82.0bytes (213.3kB/s) icNF98.4d_cNF04.9a_jaccard.tsv Done...    
-Downloading  [####################]100.00%   82.0bytes/82.0bytes (209.8kB/s) icNF98.4d_cNF97.2a_jaccard.tsv Done...    
-Downloading  [####################]100.00%   82.0bytes/82.0bytes (229.6kB/s) icNF98.4d_cNF97.2b_jaccard.tsv Done...    
-Downloading  [####################]100.00%   83.0bytes/83.0bytes (233.2kB/s) icNF98.4d_cNF98.4c_jaccard.tsv Done...    
-Downloading  [####################]100.00%   83.0bytes/83.0bytes (224.7kB/s) icNF98.4d_cNF98.4d_jaccard.tsv Done...    
-Downloading  [####################]100.00%   82.0bytes/82.0bytes (223.6kB/s) icNF98.4d_icNF00.10a_jaccard.tsv Done...    
-Downloading  [####################]100.00%   82.0bytes/82.0bytes (216.4kB/s) icNF98.4d_icNF04.9a_jaccard.tsv Done...    
-Downloading  [####################]100.00%   82.0bytes/82.0bytes (226.8kB/s) icNF98.4d_icNF97.2a_jaccard.tsv Done...    
-Downloading  [####################]100.00%   82.0bytes/82.0bytes (219.4kB/s) icNF98.4d_icNF97.2b_jaccard.tsv Done...    
-Downloading  [####################]100.00%   83.0bytes/83.0bytes (214.1kB/s) icNF98.4d_icNF98.4c_jaccard.tsv Done...    
-Downloading  [####################]100.00%   76.0bytes/76.0bytes (204.8kB/s) icNF98.4d_icNF98.4d_jaccard.tsv Done...</code></pre>
-<pre class="r"><code>nms &lt;- sapply(ids, function(x){
+}) %&gt;% t() %&gt;% as_tibble()
+
+nms &lt;- sapply(ids, function(x){
  file &lt;- synGet(x)
  nm &lt;- file$properties$name
 }) 
@@ -2954,12 +2811,12 @@ table_of_immortalized_cells &lt;- jac %&gt;% rowwise %&gt;% filter(grepl(glue::g
   set_names(&quot;Primary cell line&quot;, &quot;Immortalized cell line&quot;, &quot;Jaccard index&quot;)
 
 gt::gt(table_of_immortalized_cells)</code></pre>
-<div id="psxarwtcgh" style="overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
+<div id="jqotnanyzk" style="overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
 <style>html {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Helvetica Neue', 'Fira Sans', 'Droid Sans', Arial, sans-serif;
 }
 
-#psxarwtcgh .gt_table {
+#jqotnanyzk .gt_table {
   display: table;
   border-collapse: collapse;
   margin-left: auto;
@@ -2984,7 +2841,7 @@ gt::gt(table_of_immortalized_cells)</code></pre>
   border-left-color: #D3D3D3;
 }
 
-#psxarwtcgh .gt_heading {
+#jqotnanyzk .gt_heading {
   background-color: #FFFFFF;
   text-align: center;
   border-bottom-color: #FFFFFF;
@@ -2996,7 +2853,7 @@ gt::gt(table_of_immortalized_cells)</code></pre>
   border-right-color: #D3D3D3;
 }
 
-#psxarwtcgh .gt_title {
+#jqotnanyzk .gt_title {
   color: #333333;
   font-size: 125%;
   font-weight: initial;
@@ -3008,7 +2865,7 @@ gt::gt(table_of_immortalized_cells)</code></pre>
   border-bottom-width: 0;
 }
 
-#psxarwtcgh .gt_subtitle {
+#jqotnanyzk .gt_subtitle {
   color: #333333;
   font-size: 85%;
   font-weight: initial;
@@ -3020,13 +2877,13 @@ gt::gt(table_of_immortalized_cells)</code></pre>
   border-top-width: 0;
 }
 
-#psxarwtcgh .gt_bottom_border {
+#jqotnanyzk .gt_bottom_border {
   border-bottom-style: solid;
   border-bottom-width: 2px;
   border-bottom-color: #D3D3D3;
 }
 
-#psxarwtcgh .gt_col_headings {
+#jqotnanyzk .gt_col_headings {
   border-top-style: solid;
   border-top-width: 2px;
   border-top-color: #D3D3D3;
@@ -3041,7 +2898,7 @@ gt::gt(table_of_immortalized_cells)</code></pre>
   border-right-color: #D3D3D3;
 }
 
-#psxarwtcgh .gt_col_heading {
+#jqotnanyzk .gt_col_heading {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -3061,7 +2918,7 @@ gt::gt(table_of_immortalized_cells)</code></pre>
   overflow-x: hidden;
 }
 
-#psxarwtcgh .gt_column_spanner_outer {
+#jqotnanyzk .gt_column_spanner_outer {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -3073,15 +2930,15 @@ gt::gt(table_of_immortalized_cells)</code></pre>
   padding-right: 4px;
 }
 
-#psxarwtcgh .gt_column_spanner_outer:first-child {
+#jqotnanyzk .gt_column_spanner_outer:first-child {
   padding-left: 0;
 }
 
-#psxarwtcgh .gt_column_spanner_outer:last-child {
+#jqotnanyzk .gt_column_spanner_outer:last-child {
   padding-right: 0;
 }
 
-#psxarwtcgh .gt_column_spanner {
+#jqotnanyzk .gt_column_spanner {
   border-bottom-style: solid;
   border-bottom-width: 2px;
   border-bottom-color: #D3D3D3;
@@ -3093,7 +2950,7 @@ gt::gt(table_of_immortalized_cells)</code></pre>
   width: 100%;
 }
 
-#psxarwtcgh .gt_group_heading {
+#jqotnanyzk .gt_group_heading {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -3118,7 +2975,7 @@ gt::gt(table_of_immortalized_cells)</code></pre>
   vertical-align: middle;
 }
 
-#psxarwtcgh .gt_empty_group_heading {
+#jqotnanyzk .gt_empty_group_heading {
   padding: 0.5px;
   color: #333333;
   background-color: #FFFFFF;
@@ -3133,15 +2990,15 @@ gt::gt(table_of_immortalized_cells)</code></pre>
   vertical-align: middle;
 }
 
-#psxarwtcgh .gt_from_md > :first-child {
+#jqotnanyzk .gt_from_md > :first-child {
   margin-top: 0;
 }
 
-#psxarwtcgh .gt_from_md > :last-child {
+#jqotnanyzk .gt_from_md > :last-child {
   margin-bottom: 0;
 }
 
-#psxarwtcgh .gt_row {
+#jqotnanyzk .gt_row {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -3160,7 +3017,7 @@ gt::gt(table_of_immortalized_cells)</code></pre>
   overflow-x: hidden;
 }
 
-#psxarwtcgh .gt_stub {
+#jqotnanyzk .gt_stub {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -3173,7 +3030,7 @@ gt::gt(table_of_immortalized_cells)</code></pre>
   padding-right: 5px;
 }
 
-#psxarwtcgh .gt_stub_row_group {
+#jqotnanyzk .gt_stub_row_group {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -3187,11 +3044,11 @@ gt::gt(table_of_immortalized_cells)</code></pre>
   vertical-align: top;
 }
 
-#psxarwtcgh .gt_row_group_first td {
+#jqotnanyzk .gt_row_group_first td {
   border-top-width: 2px;
 }
 
-#psxarwtcgh .gt_summary_row {
+#jqotnanyzk .gt_summary_row {
   color: #333333;
   background-color: #FFFFFF;
   text-transform: inherit;
@@ -3201,16 +3058,16 @@ gt::gt(table_of_immortalized_cells)</code></pre>
   padding-right: 5px;
 }
 
-#psxarwtcgh .gt_first_summary_row {
+#jqotnanyzk .gt_first_summary_row {
   border-top-style: solid;
   border-top-color: #D3D3D3;
 }
 
-#psxarwtcgh .gt_first_summary_row.thick {
+#jqotnanyzk .gt_first_summary_row.thick {
   border-top-width: 2px;
 }
 
-#psxarwtcgh .gt_last_summary_row {
+#jqotnanyzk .gt_last_summary_row {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -3220,7 +3077,7 @@ gt::gt(table_of_immortalized_cells)</code></pre>
   border-bottom-color: #D3D3D3;
 }
 
-#psxarwtcgh .gt_grand_summary_row {
+#jqotnanyzk .gt_grand_summary_row {
   color: #333333;
   background-color: #FFFFFF;
   text-transform: inherit;
@@ -3230,7 +3087,7 @@ gt::gt(table_of_immortalized_cells)</code></pre>
   padding-right: 5px;
 }
 
-#psxarwtcgh .gt_first_grand_summary_row {
+#jqotnanyzk .gt_first_grand_summary_row {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -3240,11 +3097,11 @@ gt::gt(table_of_immortalized_cells)</code></pre>
   border-top-color: #D3D3D3;
 }
 
-#psxarwtcgh .gt_striped {
+#jqotnanyzk .gt_striped {
   background-color: rgba(128, 128, 128, 0.05);
 }
 
-#psxarwtcgh .gt_table_body {
+#jqotnanyzk .gt_table_body {
   border-top-style: solid;
   border-top-width: 2px;
   border-top-color: #D3D3D3;
@@ -3253,7 +3110,7 @@ gt::gt(table_of_immortalized_cells)</code></pre>
   border-bottom-color: #D3D3D3;
 }
 
-#psxarwtcgh .gt_footnotes {
+#jqotnanyzk .gt_footnotes {
   color: #333333;
   background-color: #FFFFFF;
   border-bottom-style: none;
@@ -3267,7 +3124,7 @@ gt::gt(table_of_immortalized_cells)</code></pre>
   border-right-color: #D3D3D3;
 }
 
-#psxarwtcgh .gt_footnote {
+#jqotnanyzk .gt_footnote {
   margin: 0px;
   font-size: 90%;
   padding-left: 4px;
@@ -3276,7 +3133,7 @@ gt::gt(table_of_immortalized_cells)</code></pre>
   padding-right: 5px;
 }
 
-#psxarwtcgh .gt_sourcenotes {
+#jqotnanyzk .gt_sourcenotes {
   color: #333333;
   background-color: #FFFFFF;
   border-bottom-style: none;
@@ -3290,7 +3147,7 @@ gt::gt(table_of_immortalized_cells)</code></pre>
   border-right-color: #D3D3D3;
 }
 
-#psxarwtcgh .gt_sourcenote {
+#jqotnanyzk .gt_sourcenote {
   font-size: 90%;
   padding-top: 4px;
   padding-bottom: 4px;
@@ -3298,81 +3155,74 @@ gt::gt(table_of_immortalized_cells)</code></pre>
   padding-right: 5px;
 }
 
-#psxarwtcgh .gt_left {
+#jqotnanyzk .gt_left {
   text-align: left;
 }
 
-#psxarwtcgh .gt_center {
+#jqotnanyzk .gt_center {
   text-align: center;
 }
 
-#psxarwtcgh .gt_right {
+#jqotnanyzk .gt_right {
   text-align: right;
   font-variant-numeric: tabular-nums;
 }
 
-#psxarwtcgh .gt_font_normal {
+#jqotnanyzk .gt_font_normal {
   font-weight: normal;
 }
 
-#psxarwtcgh .gt_font_bold {
+#jqotnanyzk .gt_font_bold {
   font-weight: bold;
 }
 
-#psxarwtcgh .gt_font_italic {
+#jqotnanyzk .gt_font_italic {
   font-style: italic;
 }
 
-#psxarwtcgh .gt_super {
+#jqotnanyzk .gt_super {
   font-size: 65%;
 }
 
-#psxarwtcgh .gt_two_val_uncert {
-  display: inline-block;
-  line-height: 1em;
-  text-align: right;
-  font-size: 60%;
-  vertical-align: -0.25em;
-  margin-left: 0.1em;
-}
-
-#psxarwtcgh .gt_footnote_marks {
+#jqotnanyzk .gt_footnote_marks {
   font-style: italic;
   font-weight: normal;
   font-size: 75%;
   vertical-align: 0.4em;
 }
 
-#psxarwtcgh .gt_asterisk {
+#jqotnanyzk .gt_asterisk {
   font-size: 100%;
   vertical-align: 0;
 }
 
-#psxarwtcgh .gt_slash_mark {
-  font-size: 0.7em;
-  line-height: 0.7em;
-  vertical-align: 0.15em;
+#jqotnanyzk .gt_indent_1 {
+  text-indent: 5px;
 }
 
-#psxarwtcgh .gt_fraction_numerator {
-  font-size: 0.6em;
-  line-height: 0.6em;
-  vertical-align: 0.45em;
+#jqotnanyzk .gt_indent_2 {
+  text-indent: 10px;
 }
 
-#psxarwtcgh .gt_fraction_denominator {
-  font-size: 0.6em;
-  line-height: 0.6em;
-  vertical-align: -0.05em;
+#jqotnanyzk .gt_indent_3 {
+  text-indent: 15px;
+}
+
+#jqotnanyzk .gt_indent_4 {
+  text-indent: 20px;
+}
+
+#jqotnanyzk .gt_indent_5 {
+  text-indent: 25px;
 }
 </style>
 <table class="gt_table">
   
   <thead class="gt_col_headings">
     <tr>
-      <th class="gt_col_heading gt_columns_bottom_border gt_left" rowspan="1" colspan="1">Primary cell line</th>
-      <th class="gt_col_heading gt_columns_bottom_border gt_left" rowspan="1" colspan="1">Immortalized cell line</th>
-      <th class="gt_col_heading gt_columns_bottom_border gt_right" rowspan="1" colspan="1">Jaccard index</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_left" rowspan="1" colspan="1" scope="col">Primary cell line</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_left" rowspan="1" colspan="1" scope="col">Immortalized cell line</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_right" rowspan="1" colspan="1" scope="col">Jaccard index</th>
     </tr>
   </thead>
   <tbody class="gt_table_body">
@@ -3453,9 +3303,9 @@ ggplot(related_pairs_2, aes(x = Comparison, y = `Jaccard similarity (0 to 1)`, f
 ## [1] stats     graphics  grDevices utils     datasets  methods   base     
 ## 
 ## other attached packages:
-##  [1] gt_0.6.0          pheatmap_1.0.12   viridis_0.6.2     viridisLite_0.4.0
-##  [5] forcats_0.5.1     stringr_1.4.0     dplyr_1.0.9       purrr_0.3.4      
-##  [9] readr_2.0.2       tidyr_1.1.4       tibble_3.1.8      ggplot2_3.3.5    
+##  [1] gt_0.7.0          pheatmap_1.0.12   viridis_0.6.2     viridisLite_0.4.1
+##  [5] forcats_0.5.1     stringr_1.4.1     dplyr_1.0.10      purrr_0.3.4      
+##  [9] readr_2.0.2       tidyr_1.1.4       tibble_3.1.8      ggplot2_3.3.6    
 ## [13] tidyverse_1.3.1   synapser_0.11.7  
 ## 
 ## loaded via a namespace (and not attached):
@@ -3463,26 +3313,26 @@ ggplot(related_pairs_2, aes(x = Comparison, y = `Jaccard similarity (0 to 1)`, f
 ##  [4] vroom_1.5.5          jsonlite_1.7.2       pack_0.1-1          
 ##  [7] modelr_0.1.8         assertthat_0.2.1     highr_0.9           
 ## [10] vipor_0.4.5          cellranger_1.1.0     yaml_2.2.1          
-## [13] pillar_1.8.0         backports_1.3.0      glue_1.6.2          
-## [16] digest_0.6.28        RColorBrewer_1.1-2   checkmate_2.1.0     
-## [19] rvest_1.0.2          colorspace_2.0-2     htmltools_0.5.2     
-## [22] pkgconfig_2.0.3      PythonEmbedInR_0.8.4 broom_0.7.10        
-## [25] haven_2.4.3          scales_1.1.1         tzdb_0.2.0          
-## [28] farver_2.1.0         generics_0.1.1       ellipsis_0.3.2      
-## [31] withr_2.4.2          cli_3.3.0            magrittr_2.0.3      
-## [34] crayon_1.4.2         readxl_1.3.1         evaluate_0.14       
-## [37] fs_1.5.2             fansi_0.5.0          xml2_1.3.2          
-## [40] beeswarm_0.4.0       tools_3.6.3          hms_1.1.1           
-## [43] lifecycle_1.0.1      munsell_0.5.0        reprex_2.0.1        
-## [46] compiler_3.6.3       jquerylib_0.1.4      rlang_1.0.4         
-## [49] grid_3.6.3           rstudioapi_0.13      rappdirs_0.3.3      
-## [52] labeling_0.4.2       rmarkdown_2.11       gtable_0.3.0        
-## [55] codetools_0.2-18     DBI_1.1.1            R6_2.5.1            
-## [58] gridExtra_2.3        lubridate_1.8.0      knitr_1.36          
-## [61] fastmap_1.1.0        bit_4.0.4            utf8_1.2.2          
-## [64] stringi_1.7.5        ggbeeswarm_0.6.0     parallel_3.6.3      
-## [67] Rcpp_1.0.7           vctrs_0.4.1          dbplyr_2.1.1        
-## [70] tidyselect_1.1.1     xfun_0.27</code></pre>
+## [13] pillar_1.8.1         backports_1.3.0      glue_1.6.2          
+## [16] digest_0.6.29        RColorBrewer_1.1-3   rvest_1.0.2         
+## [19] colorspace_2.0-3     htmltools_0.5.3      pkgconfig_2.0.3     
+## [22] PythonEmbedInR_0.8.4 broom_0.7.10         haven_2.4.3         
+## [25] scales_1.2.1         tzdb_0.2.0           farver_2.1.1        
+## [28] generics_0.1.3       ellipsis_0.3.2       withr_2.5.0         
+## [31] cli_3.4.0            magrittr_2.0.3       crayon_1.4.2        
+## [34] readxl_1.3.1         evaluate_0.14        fs_1.5.2            
+## [37] fansi_1.0.3          xml2_1.3.2           beeswarm_0.4.0      
+## [40] tools_3.6.3          hms_1.1.1            lifecycle_1.0.1     
+## [43] munsell_0.5.0        reprex_2.0.1         compiler_3.6.3      
+## [46] jquerylib_0.1.4      rlang_1.0.5          grid_3.6.3          
+## [49] rstudioapi_0.13      rappdirs_0.3.3       labeling_0.4.2      
+## [52] rmarkdown_2.11       gtable_0.3.1         codetools_0.2-18    
+## [55] DBI_1.1.1            R6_2.5.1             gridExtra_2.3       
+## [58] lubridate_1.8.0      knitr_1.36           fastmap_1.1.0       
+## [61] bit_4.0.4            utf8_1.2.2           stringi_1.7.8       
+## [64] ggbeeswarm_0.6.0     parallel_3.6.3       Rcpp_1.0.9          
+## [67] vctrs_0.4.1          dbplyr_2.1.1         tidyselect_1.1.2    
+## [70] xfun_0.27</code></pre>
 
 
 
