@@ -47,7 +47,7 @@ import synapseclient
 syn = synapseclient.Synapse()
 
 syn.login(email= "jineta.banerjee",
-                   apiKey= "")
+                   authToken= "")
 
 ```
 
@@ -70,7 +70,7 @@ Fastq files from RNA sequencing data in this [dataset](https://www.synapse.org/#
 
 ```{r gene_counts, echo=FALSE, eval=TRUE, results='hide', message=FALSE, fig.height=10, fig.width=10}
 
-cts <- as.data.frame(read.csv("~/cnf-cell-lines/data/salmon.merged.gene_counts.tsv", sep="\t", row.names="gene_id")) 
+cts <- as.data.frame(read.csv("/Users/jineta/git/gitrepo/cnf-cell-lines/data/salmon.merged.gene_counts.tsv", sep="\t", row.names="gene_id")) 
 colnames(cts)[2] <- "28cNF"
 colnames(cts)[12] <- "i28cNF"
 
@@ -438,3 +438,38 @@ output[[2]]
 
 ```
 
+
+### Pathways enriched in genes upregulated in icNF
+
+```{r upregulated, echo=FALSE, eval= TRUE, fig.height=10, fig.width=10}
+
+# the fold change calculation is cNF compared to iCNF. So genes upregulated in iCNF compared to cNF will have a logFC < 0
+cluster_gene_df <- heatmap_data %>% 
+  dplyr::filter(heatmap_data$logFC < 0) 
+cluster_gene_df$gene <- row.names(cluster_gene_df)
+
+output <- make_gprofiler_plots(cluster_gene_df$gene)
+
+output[[1]]
+output[[2]]
+
+
+```
+
+### Pathways enriched in genes downregulated in icNF
+
+```{r downregulated, echo=FALSE, eval= TRUE, fig.height=10, fig.width=10}
+
+# the fold change calculation is cNF compared to iCNF. So genes downregulated in iCNF compared to cNF will have a logFC > 0
+
+cluster_gene_df <- heatmap_data %>% 
+  dplyr::filter(heatmap_data$logFC > 0) 
+cluster_gene_df$gene <- row.names(cluster_gene_df)
+
+output <- make_gprofiler_plots(cluster_gene_df$gene)
+
+output[[1]]
+output[[2]]
+
+
+```
