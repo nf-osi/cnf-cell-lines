@@ -1,0 +1,475 @@
+---
+title: "Comparison of gene expression from non-immortalized cNF primary cells and immortalized cNF cell lines"
+author: Jineta Banerjee
+date: '`r format(Sys.time(), "%d %B, %Y")`'
+output: 
+  html_document:
+    toc: true
+    number_sections: true
+    toc_float:
+      collapsed: false
+      smooth_scroll: false
+    fig_width: 7
+    fig_height: 6
+    fig_caption: true
+    df_print: paged 
+    #code_folding: true 
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(engine.opts = list(bash = "-l")) #execute bash
+```
+
+```{r lib_synapser, echo=FALSE, eval=TRUE, results='hide', message=FALSE, warning=FALSE, include=FALSE}
+
+library(reticulate)
+
+library(BiocManager)
+library(gProfileR)
+library(gprofiler2)
+library(tidyverse)
+library(DT)
+library(stringr) 
+#library(DESeq2)
+library(limma)
+library(edgeR)
+library(pheatmap)
+library(ggrepel)
+library(ggfortify)
+
+```
+
+```{python login_to_synapse, eval=TRUE, echo=FALSE, results='hide', message=FALSE, warning=FALSE, include=FALSE}
+
+## The login credentials have been stored in .synapseConfig file in the home dir. If you dont have this setup, please make the file before trying to login.
+import synapseclient
+syn = synapseclient.Synapse()
+
+syn.login(email= "jineta.banerjee",
+                   authToken= "")
+
+```
+
+```{python get_data, eval=TRUE, echo=FALSE, results='hide', message=FALSE, warning=FALSE, include=FALSE}
+
+# get counts file
+#syn.get("syn29532377", downloadLocation = "~/cnf-cell-lines/data")
+
+# get metadata
+query =  "SELECT * FROM syn11601459 where assay = 'rnaSeq' and fileFormat = 'sf' and name = 'quant.sf'"
+metadata = syn.tableQuery(query).asDataFrame() 
+
+```
+
+&nbsp;
+
+### RNA sequencing data from project
+
+Fastq files from RNA sequencing data in this [dataset](https://www.synapse.org/#!Synapse:syn29542674/datasets/) were processed using standardized processing tools and parameters as listed in [this link](https://sagebionetworks.jira.com/wiki/spaces/NPD/pages/2595913729/Nextflow+Data+Processing+Configuration). The raw counts of transcripts identified in the files were analyzed as follows:
+
+```{r gene_counts, echo=FALSE, eval=TRUE, results='hide', message=FALSE, fig.height=10, fig.width=10}
+
+cts <- as.data.frame(read.csv("/Users/jineta/git/gitrepo/cnf-cell-lines/data/salmon.merged.gene_counts.tsv", sep="\t", row.names="gene_id")) 
+colnames(cts)[2] <- "28cNF"
+colnames(cts)[12] <- "i28cNF"
+
+# gene to ensg mapping
+gene_2_ensg <- as.data.frame(cts$gene_name)
+gene_2_ensg$ensg <- rownames(cts)
+gene_2_ensg <- gene_2_ensg %>% unique()
+  
+# get metadata
+metadata <- py$metadata
+metadata <- metadata %>% 
+  dplyr::select(c(id,specimenID,tumorType,individualID,sex)) %>% 
+  unique() %>% 
+  dplyr::mutate(specimen = stringr::str_replace_all(specimenID, " ", "_"))
+rownames(metadata) <- metadata$specimen
+metadata$tumorType <- as.factor(unlist(metadata$tumorType))
+metadata$immortalized <- "No"
+metadata$immortalized[metadata$specimen %in% c("i28cNF", "icNF97.2a", "icNF04.9a" , "icNF97.2b", "icNF98.4c", "icNF98.4d", "icNF00.10a", "hTERT_NF1_ipNF05.5", "hTERT_NF1_ipNF95.11b_C", "hTERT_NF1_ipNF95.6") ] <- "Yes"
+metadata$immortalized <- as.factor(metadata$immortalized)
+
+```
+
+```{r make_dataset, echo=FALSE, eval=TRUE, results='hide', message=FALSE, fig.height=10, fig.width=10}
+
+# find out if specimenID is the right column to match 
+#colnames(cts)
+
+#remove gene_name column
+cts_mat <- cts[,c(2:18)] 
+
+#check if all names match the samples
+all(rownames(metadata) %in% colnames(cts_mat))
+
+# match the order of samples in both matrices
+cts_mat <- cts_mat[, rownames(metadata)]
+
+#all(rownames(metadata) == colnames(cts))
+
+#convert raw counts dataframe into a matrix 
+gene_mat<-as.matrix(cts_mat)
+rownames(gene_mat) <- cts$gene_name
+
+#remove duplicate rows, keep rows with max gene expression
+no_dupes_gene_mat <- aggregate(gene_mat, by=list(rownames(gene_mat)), FUN=max)
+
+# Remove low expressed genes
+keepRows <- rowSums((no_dupes_gene_mat[,]) >= 10) >= (ncol(no_dupes_gene_mat[,])*0.8)
+#table(keepRows)
+no_dupes_gene_mat <- no_dupes_gene_mat[keepRows,]
+
+rownames(no_dupes_gene_mat) <- no_dupes_gene_mat$Group.1 
+no_dupes_gene_mat <- no_dupes_gene_mat %>%  
+  dplyr::select(-"Group.1")
+
+```
+
+&nbsp;
+
+### Principal component analysis of all samples:
+
+First a principal component analysis was performed to see if there were evident clustering of non-immortalized and immortalized cell lines. The non-immortalized and immortalized cell lines were found to be uniformly distributed. The PC1 and PC2 only accounted for 18-21% of variance in the samples suggesting that the samples were not vastly different from each other. Since most of the samples were cNF samples, this suggests that no significant differences were noted between the different cNF samples. Since there were only 3 pNF samples, this analysis was underpowered to capture any differences between cNF and pNF samples. 
+
+```{r TMM-LCPM normalization, eval=TRUE, echo=FALSE, results='hide', message=FALSE, warning=FALSE, fig.height = 20, fig.width = 20}
+
+# prepare for DGE analysis using edgeR and limma
+DGE.all <-DGEList(counts=no_dupes_gene_mat) 
+
+# TMM normalization to account for library related differences
+DGE.all <- calcNormFactors(DGE.all, method = "TMM")  
+
+# make a normalized counts matrix for use outside of limma (PCA, etc)
+norm.factors <- DGE.all$samples[,"norm.factors"]
+normCounts.all <- as.data.frame(t(t(DGE.all$counts)/norm.factors))
+DGE.all <- DGEList(counts=normCounts.all)
+
+# transform into logCPM counts first
+lcpm.normCounts <- edgeR::cpm(DGE.all, log=TRUE, prior.count = 1)
+
+## PCA to look at how the datasets differ
+
+pca_res <- prcomp(t(lcpm.normCounts),scale=TRUE) 
+var_explained <- pca_res$sdev^2/sum(pca_res$sdev^2)
+results <- as.data.frame(pca_res$x)
+results$specimen <- rownames(results)
+  
+plot_data <- merge(results, metadata)
+
+#pdf("~/cnf-cell-lines/figures/PCA_092622.pdf", height = 20, width = 20)
+plot_data %>% 
+     ggplot(aes(x=PC1,
+               y=PC2)) + 
+    geom_point(aes(colour = as.factor(immortalized), shape = as.factor(tumorType)), size=10) +
+    geom_label_repel(aes(label=specimenID), size = 6)+
+  labs(x=paste0("Variance along Principal Component 1: ",round(var_explained[1]*100,1),"%"),
+       y=paste0("Variance along Principal Component 2: ",round(var_explained[2]*100,1),"%"),
+       color = "Immortalization status",
+       shape = "Tumor Type")+
+  theme_bw()+
+  theme(legend.text = element_text(size=20), 
+              axis.text.x  = element_text(size=30, angle = 0),
+              axis.text.y = element_text(size=30),
+              text = element_text(size=30),
+              strip.text.x = element_text(size = 30),
+              legend.position="right",
+              panel.grid = element_blank(),
+              panel.background = element_rect(fill = "white"))
+#dev.off()
+
+
+```
+
+&nbsp;
+
+### Differential gene expression analysis in cNF vs icNF samples:
+
+TMM normalization was used to account for library sizes and prepare the dataset for differential gene expression analysis. We then used limma-edgeR based analysis to find differentially expressed genes in the TMM normalized dataset. 
+
+```{r DEG1, echo=FALSE, eval=TRUE, results='hide', message=FALSE, warning=FALSE, fig.height=20, fig.width=20}
+
+#Select annotations
+annotes=metadata %>%
+  dplyr::select(specimen,sex,immortalized,tumorType) %>%
+  unique()
+annotes$specimenType <- as.factor(as.factor(stringr::str_c(metadata$tumorType, "_immortalized_", metadata$immortalized)))
+annotes$sex <-as.factor(annotes$sex)
+rownames(annotes)<-annotes$specimen
+
+## DEG analysis using limma, Glimma and EdgeR
+limma_object <- DGE.all  # make new DGElist object so that we dont change the original object
+
+#make design matrix
+annotes <- annotes %>% 
+  dplyr::filter(specimen %in% colnames(gene_mat)) 
+ordered_annotes <- annotes[match(colnames(gene_mat), annotes$specimen),]
+group_object <- ordered_annotes$specimenType
+batch <- ordered_annotes$studyName
+sex <- ordered_annotes$sex
+
+design_new <- model.matrix(~0+group_object)
+colnames(design_new) <- gsub("group_object", "", colnames(design_new)) # modify the colnames to remove "group_object" addition
+
+# clean up group names
+colnames(design_new) <- colnames(design_new) %>% 
+  stringr::str_remove_all(pattern = "\"") %>% 
+  stringr::str_remove_all(pattern = "\\[" ) %>% 
+  stringr::str_remove_all(pattern = "\\]" )
+colnames(design_new) <- gsub(" ", "_", colnames(design_new))
+
+```
+
+&nbsp;
+ 
+  The volcano plot below shows genes that are significantly overexpressed in cNF compared to icNF with a log fold change > 2 in red. The dots in blue refer to genes that are significantly underexpressed in cNF compared to icNF with a log fold change < -2. The thresholds of fold change have been arbitrarily chosen for ease of visualization in the volcano plot shown below.
+
+```{r DEG2_volcano_plot, echo=FALSE, eval=TRUE, results='hide', message=FALSE, warning=FALSE, fig.height=20, fig.width=20, fig.cap=""}
+
+contr.matrix <- makeContrasts(
+   cNFvsicNF = Cutaneous_Neurofibroma_immortalized_No - Cutaneous_Neurofibroma_immortalized_Yes,
+   levels = colnames(design_new))
+#contr.matrix
+
+## Using voom to make Elist object
+#print("Visualizing the mean variance trend of the RNASeq dataset")
+voom_object <- voomWithQualityWeights(limma_object, design_new, plot=FALSE) # removing heteroscedasticity
+#voom_object$genes <- genes_unique
+
+## Run DGE analysis using lmFit
+
+fit <- lmFit(voom_object, design_new)
+contrast_fit <- contrasts.fit(fit, contrasts=contr.matrix)
+fit <- eBayes(contrast_fit, trend=TRUE)
+
+results_fit <- decideTests(fit)
+#summary(results_fit)
+
+cNFvsicNF <- topTreat(fit, coef=1, n=Inf)
+
+## Volcano Plots:
+## make gene exp dataframe with genes ordered by adj.Pvalue
+cNFvsicNF_ordered <-cNFvsicNF %>%
+  mutate(threshold = ifelse(logFC >= 2 & adj.P.Val <= 0.05,"A", 
+                            ifelse(logFC<=-2 & adj.P.Val <= 0.05, 
+                                   "B", "C"))) %>% 
+  arrange(adj.P.Val) %>% 
+  dplyr::select(c(logFC, adj.P.Val, threshold)) 
+cNFvsicNF_ordered$gene_name <- rownames(cNFvsicNF_ordered)
+
+#pdf("~/cnf-cell-lines/figures/volcanoplot_cNF_icNF_092622.pdf", width = 20, height = 20)
+ggplot(data=cNFvsicNF_ordered, aes(x=logFC, y=-log10(adj.P.Val))) +
+  geom_point(aes(colour = threshold), alpha=0.3, size=8) +
+  xlim(c(-10, 10)) + ylim(c(0, 2.5)) +
+  scale_colour_manual(values = c("A"= "red", "B"="blue",  "C"= "black")) +
+  geom_label_repel(aes(label = ifelse(threshold != "C",
+                               as.character(rownames(cNFvsicNF_ordered)), ""),
+                colour = as.factor(threshold)), size = 5, angle = 45, hjust = -0.25, max.overlaps = 30) +
+  labs(x=expression(log[2]*" fold change"),
+       y=expression(-log[10]*" BH adjusted p-value"))+
+  theme_bw()+
+  theme(legend.text = element_text(size=20), #element_text(size=8),
+              axis.text.x  = element_text(size=30, angle = 0),
+              axis.text.y = element_text(size=30),
+              text = element_text(size=30),
+              strip.text.x = element_text(size = 30),
+              legend.position="none",
+              panel.grid = element_blank(),
+              panel.background = element_rect(fill = "white")) 
+#dev.off()
+
+```
+
+&nbsp;
+
+The heatmap below the volcano plot shows the expression differences of all significantly differentially expressed genes between cNF and icNF samples. The cluster tree shows splitting of the differentially expressed genes into 4 main clusters according to expression patterns in the comparison groups.
+
+```{r DEG3_heatmap, echo=FALSE, eval=TRUE, results='hide', message=FALSE, warning=FALSE, fig.height=20, fig.width=20, fig.cap=""}
+
+# select annotations for the two selected groups
+annotes <- annotes %>%
+  dplyr::filter(specimenType %in% c(levels(annotes$specimenType)[1], levels(annotes$specimenType)[2])) %>% 
+  unique
+rownames(annotes)<-annotes$specimen
+
+# make lcpm gene exp dataframe with specimens of selected groups
+res <- lcpm.normCounts %>% 
+  as.data.frame() %>% 
+  dplyr::filter(rownames(lcpm.normCounts) %in% rownames(cNFvsicNF_ordered)) %>% 
+  dplyr::select(matches(annotes$specimen))
+res$gene_name <- rownames(res)
+
+#arrange heatmap plot data by adj.Pvalue and select only the significantly different genes
+heatmap_data <- merge(res,cNFvsicNF_ordered, by= "gene_name") %>% 
+  arrange(adj.P.Val) %>% 
+  dplyr::filter(adj.P.Val < 0.05)
+rownames(heatmap_data) <- heatmap_data$gene_name
+
+# plot heatmap of all significantly different genes
+heatmap_1 <- pheatmap(heatmap_data %>% 
+                        dplyr::select(-c(gene_name, logFC, adj.P.Val, threshold)),
+                       labels_col=rep("",ncol(res)),
+                       fontsize_row = 1,
+                       clustering_method = 'ward.D2',
+                       annotation_col = dplyr::select(annotes, -c(specimen,specimenType)),
+                       treeheight_row = 100,
+                       cutree_rows = 4,
+                       width = 16, 
+                       height = 8)
+
+#pdf("~/cnf-cell-lines/figures/DEG-heatmap_092622_4clusters.pdf", height = 20, width = 20)
+heatmap_1
+#dev.off()
+
+#pdf("~/cnf-cell-lines/figures/DEG-heatmap_092622_all_sig_genes_dendrogram.pdf", height = 20, width = 20)
+plot(heatmap_1$tree_row, cex = 0.7)
+abline(h=100, col="red", lty = 2, lwd = 2)
+#dev.off()
+
+# dendrogram with the samples
+#pdf("~/cnf-cell-lines/figures/DEG-heatmap_092622_all_samples_dendrogram.pdf", height = 20, width = 20)
+plot(heatmap_1$tree_col, cex = 3)
+abline(h=80, col="red", lty = 2, lwd = 2)
+#dev.off()
+
+# Make subclusters
+heatmap_cluster <- sort(cutree(heatmap_1$tree_row, h=100))
+
+
+
+```
+
+&nbsp;
+
+### Pathway analysis
+
+  The clusters of genes identified above were then subjected to pathway analysis using _gprofiler2_ which uses hypergeometric test to examine enrichment of particular cellular pathways in the gene lists provided. 
+  
+  The Manhattan plots show the enrichment scores (logPvalues) for pathways in various databases (e.g. KEGG, REAC, GO:MF, GO:CC etc) that represent the genes in each of the identified clusters (Clusters 1, 2, 3, and 4). 
+  
+  The table below each Manhattan plot shows the list of pathways enriched in specific clusters along with the pValue of enrichment.
+  
+&nbsp;
+  
+#### All significantly differentially expressed genes:
+
+```{r pathway-1, echo=F, eval=TRUE, fig.height=10, fig.width=10}
+
+
+
+make_gprofiler_plots <- function(cluster_genes){
+  
+plot_df <- gprofiler2::gost(cluster_genes, organism = "hsapiens", 
+  ordered_query = F, significant = T, exclude_iea = F,
+  correction_method = "fdr", 
+  domain_scope = "annotated")
+
+t <- plot_df$result
+terms_below_200 <- t[(t$term_size < 200),]
+
+plot_manhattan <- gprofiler2::gostplot(plot_df,
+                     capped = FALSE,
+                     interactive = T,
+                     pal = c(`GO:MF` = "#dc3912", 
+                             `GO:BP` = "#ff9900", 
+                             `GO:CC` = "#109618", 
+                             KEGG ="#dd4477", 
+                             REAC = "#3366cc", 
+                             WP = "#0099c6", 
+                             TF = "#5574a6", 
+                             MIRNA = "#22aa99", 
+                             HPA = "#6633cc", 
+                             CORUM = "#66aa00", 
+                             HP = "#990099"
+                             ))
+
+
+library(DT)
+table <- DT::datatable(terms_below_200[, c("source","term_name", "term_size", "query_size", "intersection_size", "p_value")])
+
+my_list <- list(plot_manhattan, table)
+return(my_list)
+  
+}
+
+print("Pathway enrichment among differentially expressed genes")
+output <- make_gprofiler_plots(heatmap_data$gene_name)
+
+output[[1]]
+output[[2]]
+
+```
+
+&nbsp;
+
+#### Subclusters of differentially expressed genes:
+
+```{r pathway-2, echo=FALSE, eval= TRUE, fig.height=10, fig.width=10}
+
+cluster_gene_df <- as.data.frame(heatmap_cluster)
+cluster_gene_df$gene <- row.names(cluster_gene_df)
+
+print("Enrichment Plot of Cluster 1 genes")
+output <- make_gprofiler_plots(cluster_gene_df$gene[cluster_gene_df$heatmap_cluster == 1])
+
+output[[1]]
+output[[2]]
+
+
+print("Enrichment Plot of Cluster 2 genes")
+output <- make_gprofiler_plots(cluster_gene_df$gene[cluster_gene_df$heatmap_cluster == 2])
+
+output[[1]]
+output[[2]]
+
+print("Enrichment Plot of Cluster 3 genes")
+output <- make_gprofiler_plots(cluster_gene_df$gene[cluster_gene_df$heatmap_cluster == 3])
+
+output[[1]]
+output[[2]]
+#
+print("Enrichment Plot of Cluster 4 genes")
+output <- make_gprofiler_plots(cluster_gene_df$gene[cluster_gene_df$heatmap_cluster == 4])
+
+output[[1]]
+output[[2]]
+
+
+```
+
+
+### Pathways enriched in genes upregulated in icNF
+
+```{r upregulated, echo=FALSE, eval= TRUE, fig.height=10, fig.width=10}
+
+# the fold change calculation is cNF compared to iCNF. So genes upregulated in iCNF compared to cNF will have a logFC < 0
+cluster_gene_df <- heatmap_data %>% 
+  dplyr::filter(heatmap_data$logFC < 0) 
+cluster_gene_df$gene <- row.names(cluster_gene_df)
+
+output <- make_gprofiler_plots(cluster_gene_df$gene)
+
+output[[1]]
+output[[2]]
+
+
+```
+
+### Pathways enriched in genes downregulated in icNF
+
+```{r downregulated, echo=FALSE, eval= TRUE, fig.height=10, fig.width=10}
+
+# the fold change calculation is cNF compared to iCNF. So genes downregulated in iCNF compared to cNF will have a logFC > 0
+
+cluster_gene_df <- heatmap_data %>% 
+  dplyr::filter(heatmap_data$logFC > 0) 
+cluster_gene_df$gene <- row.names(cluster_gene_df)
+
+output <- make_gprofiler_plots(cluster_gene_df$gene)
+
+output[[1]]
+output[[2]]
+
+
+```
