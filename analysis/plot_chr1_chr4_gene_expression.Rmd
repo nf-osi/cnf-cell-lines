@@ -1,0 +1,49 @@
+---
+title: ""
+author: Robert Allaway
+date: '`r format(Sys.time(), "%d %B, %Y")`'
+output: 
+  html_document:
+    toc: true
+    number_sections: true
+    toc_float:
+      collapsed: false
+      smooth_scroll: false
+    fig_caption: true
+    df_print: paged 
+---
+
+# Intro 
+
+
+
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+library(synapser)
+synLogin()
+# get counts file
+counts <- synGet("syn29532377")$path %>% readr::read_tsv()
+# get metadata
+query <- "SELECT * FROM syn11601459 where assay = 'rnaSeq' and fileFormat = 'sf' and name = 'quant.sf'"
+metadata <- synTableQuery(query)$asDataFrame() 
+
+```
+
+```{r}
+#source https://www.biostars.org/p/44426/
+
+library(biomaRt)
+mart <- useMart(biomart = "ensembl", dataset = "hsapiens_gene_ensembl")
+gene_list <- getBM(attributes = c("ensembl_gene_id", "mgi_symbol"),
+                   values     = 
+                   filter     = "hgnc_id",
+                   mart       = mart)
+```
+
+
+```{r}
+
+circos.initializeWithIdeogram(species = "hg38")
+
+```
+
+
