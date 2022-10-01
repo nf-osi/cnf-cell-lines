@@ -15,6 +15,10 @@ output:
 
 # Intro 
 
+Our CNV analysis indicated that some cell lines had very large deletions in chr1 and 4. Deletions of this size are, perhaps, unlikely, because they represented both copies of the chromosome being 50%+ gone. Deletions of this size would be surprising because it is possible that such large regions would have at least one essential gene in them. So, we decided to look at the RNAseq counts for each gene in cell lines and match this up with the CNV data. If these regions were truly missing, the RNAseq should also have 0 genes expressed in these regions. If this is a sequencing or CNV calling artifact, the RNAseq will still show gene expression in these "deleted" regions.
+
+#grab rnaseq data
+
 ```{r echo=TRUE, message=FALSE, warning=FALSE}
 library(synapser)
 library(tidyverse)
@@ -35,6 +39,9 @@ counts_tidy <- counts %>%
   ungroup()
 
 ```
+## Get biomart data 
+
+To map each ensembl gene in the rnaseq dataset to a specific chromosome and position/location. Remove the pNF rnaseq data,  because we didn't sequence these by WGS, so we can't include them in this comparision. 
 
 ```{r}
 #source https://www.biostars.org/p/44426/
@@ -73,6 +80,10 @@ beds <- beds[reorder_beds]
 
 
 ## Plot circos plots of CNV vs gene expression
+
+The inner circle (red) shows CNV as measured by Control-FREEC. "Taller" red regions represent gains of copies, while "shorter" red regions represent losses of copies.The majority of all cell lines have ~2 copies throughout the chromosomes, though there are small local regions of apparent copy number alterations. 
+
+The outer circle (blue) shows the log 10 transformed number of counts for each gene identified in the RNAseq data, with each gene aligned approximately to the genomic region that encodes it. As expected, telomeric and centromeric regions have reduced transcription/associated gene expression, as do Y chromosome genes in cell lines that have no copies of this chromosome. However, other large "deletions" indicated by our analyses, such as chr4 in cell line 28cNF do not lack transcription of genes in these regions, suggesting that these deletions are likely an artifact and not real CNVs.   
 
 ```{r}
 for(i in unique(counts_tidy_2$cell_line)){
