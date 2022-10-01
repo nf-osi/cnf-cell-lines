@@ -1,0 +1,7 @@
+Cell Line,Variant Classification,Variant Type,Genetic Change,Protein Change,dbSNP ID,SIFT,PolyPhen,IMPACT
+cNF97.2a,Frame_Shift_Del,DEL,c.233del,p.N78Ifs*7,rs1438566555,,,HIGH
+cNF97.2a,Frame_Shift_Del,DEL,c.1929del,p.M643Ifs*45,rs1567846742,,,HIGH
+cNF97.2b,Frame_Shift_Del,DEL,c.233del,p.N78Ifs*7,rs1438566555,,,HIGH
+icNF04.9a,Frame_Shift_Del,DEL,c.7391_7407del,p.T2464Kfs*13,novel,,,HIGH
+icNF97.2b,Frame_Shift_Del,DEL,c.233del,p.N78Ifs*7,rs1438566555,,,HIGH
+icNF98.4c,Splice_Site,SNP,c.6704+1G>T,p.X2235_splice,rs1060500376,,,HIGH
