@@ -176,7 +176,7 @@ ha_col <- HeatmapAnnotation(Status = rep(c("primary", "immortalized"),7),
                             col = list(Status = c("primary" = "#2A7F62", "immortalized" = "#F6BD60")))
 
 ht_list <- Heatmap(num_mat, name = "Copy\nNumber", 
-                  col = colorRamp2(c(0, 2, 8), c("#56CBF9", "#FFFFFF", "#FF729F")),
+                  col = colorRamp2(c(0, 2, 4, 8), c("#0068EF", "#FFFFFF", "#FF729F", "#CC0041")),
                   row_split = chr, 
                   cluster_rows = FALSE, 
                   cluster_columns = FALSE,
@@ -208,7 +208,7 @@ dev.off()
 
 Out of curiosity, let's try a couple of other window sizes, larger and smaller:
 
-2e3
+5e3
 
 ```{r echo=TRUE, message=FALSE, warning=FALSE}
 
@@ -220,11 +220,12 @@ chr_gr = GRanges(seqnames = chr_df[, 1], ranges = IRanges(chr_df[, 2] + 1, chr_d
 chr_gr
 
 
-chr_window = makeWindows(chr_gr, w = 2e3)
+chr_window = makeWindows(chr_gr, w = 5e3)
 
 chr_window
 
 num_mat = NULL
+
 for(i in 1:14) {
     bed = beds[[i]]
     gr_cnv = GRanges(seqnames = bed$chr, ranges = IRanges(bed$start, bed$end))
@@ -242,7 +243,7 @@ ha_col <- HeatmapAnnotation(Status = rep(c("primary", "immortalized"),7),
                             col = list(Status = c("primary" = "#2A7F62", "immortalized" = "#F6BD60")))
 
 ht_list <- Heatmap(num_mat, name = "Copy\nNumber", 
-                  col = colorRamp2(c(0, 2, 8), c("#56CBF9", "#FFFFFF", "#FF729F")),
+                  col = colorRamp2(c(0, 2, 4, 8), c("#0068EF", "#FFFFFF", "#FF729F", "#CC0041")),
                   row_split = chr, 
                   cluster_rows = FALSE, 
                   cluster_columns = FALSE,
@@ -264,7 +265,7 @@ ht_list <- Heatmap(num_mat, name = "Copy\nNumber",
 draw(ht_list, merge_legend = TRUE)
 
 
-pdf("../figures/cnv_heatmap_2e3.pdf", width = 6, height = 15)
+pdf("../figures/cnv_heatmap_5e3.pdf", width = 6, height = 15)
 draw(ht_list, merge_legend = TRUE)
 dev.off()
 
@@ -301,7 +302,7 @@ ha_col <- HeatmapAnnotation(Status = rep(c("primary", "immortalized"),7),
                             col = list(Status = c("primary" = "#2A7F62", "immortalized" = "#F6BD60")))
 
 ht_list <- Heatmap(num_mat, name = "Copy\nNumber", 
-                  col = colorRamp2(c(0, 2, 8), c("#56CBF9", "#FFFFFF", "#FF729F")),
+                  col = colorRamp2(c(0, 2, 4, 8), c("#0068EF", "#FFFFFF", "#FF729F", "#CC0041")),
                   row_split = chr, 
                   cluster_rows = FALSE, 
                   cluster_columns = FALSE,
