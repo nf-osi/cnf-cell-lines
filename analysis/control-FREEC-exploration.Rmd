@@ -197,9 +197,8 @@ ht_list <- Heatmap(num_mat, name = "Copy\nNumber",
 The results match the previous results, with a couple of cell lines appearing to have large deletions in a couple of chromosomes. However, because these deletions are (1) very large, and (2) not consistent between the primary and immortalized cell lines and (3) cNF are thought to be pretty quiet, I suspect that these are probably a sequencing artifact. While not in scope for this paper, it might be worth trying some other CNV calling methods, especially if we can find patient-matched non-tumor WGS data. 
 
 ```{r fig.height=15, fig.width=6}
-
+## this fails to render on my work mac for whatever reason, but seems to be ok in r 3.6 on a a linux instance
 draw(ht_list, merge_legend = TRUE)
-
 
 pdf("../figures/cnv_heatmap_1e4.pdf", width = 6, height = 15)
 draw(ht_list, merge_legend = TRUE)
