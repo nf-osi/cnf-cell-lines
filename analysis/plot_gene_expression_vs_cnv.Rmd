@@ -1,0 +1,151 @@
+---
+title: "Plot gene expression vs cnv"
+author: Robert Allaway
+date: '`r format(Sys.time(), "%d %B, %Y")`'
+output: 
+  html_document:
+    toc: true
+    number_sections: true
+    toc_float:
+      collapsed: false
+      smooth_scroll: false
+    fig_caption: true
+    df_print: paged 
+---
+
+# Intro 
+
+Our CNV analysis indicated that some cell lines had very large deletions in chr1 and 4. Deletions of this size are, perhaps, unlikely, because they represented both copies of the chromosome being 50%+ gone. Deletions of this size would be surprising because it is possible that such large regions would have at least one essential gene in them. So, we decided to look at the RNAseq counts for each gene in cell lines and match this up with the CNV data. If these regions were truly missing, the RNAseq should also have 0 genes expressed in these regions. If this is a sequencing or CNV calling artifact, the RNAseq will still show gene expression in these "deleted" regions.
+
+#grab rnaseq data
+
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+library(synapser)
+library(tidyverse)
+synLogin()
+library(circlize)
+
+
+# get counts file
+counts <- synGet("syn29532377", version = 2)$path %>% readr::read_tsv() 
+# get metadata
+query <- "SELECT * FROM syn11601459 where assay = 'rnaSeq' and fileFormat = 'sf' and name = 'quant.sf'"
+metadata <- synTableQuery(query)$asDataFrame() 
+
+counts_tidy <- counts %>% 
+  group_by(gene_id) %>% 
+  gather(contains("NF"), key = "cell_line", value = "counts") %>% 
+  rename(ensembl_gene_id_version = gene_id) %>% 
+  ungroup()
+
+```
+## Get biomart data 
+
+To map each ensembl gene in the rnaseq dataset to a specific chromosome and position/location. Remove the pNF rnaseq data,  because we didn't sequence these by WGS, so we can't include them in this comparision. 
+
+```{r}
+#source https://www.biostars.org/p/44426/
+library(biomaRt)
+mart <- useMart(biomart = "ensembl", dataset = "hsapiens_gene_ensembl")
+gene_list <- getBM(attributes = c("ensembl_gene_id_version", "chromosome_name", "start_position", "end_position"),
+                   values     = counts$gene_id,
+                   filter     = "ensembl_gene_id_version",
+                   mart       = mart)
+
+counts_tidy_2 <- inner_join(counts_tidy, gene_list) %>% 
+  filter(!cell_line %in% c("hTERT_NF1_ipNF05.5","hTERT_NF1_ipNF95.11b_C","hTERT_NF1_ipNF95.6"))
+  ##no matched cnv data for pnf, remove these
+
+
+
+```
+
+
+## Get CNV bed files
+
+```{r}
+
+query <- synTableQuery("SELECT * FROM syn35928271.2")$asDataFrame() 
+bed_ents <- lapply(query$id, synGet)
+beds <- lapply(bed_ents, function(x){
+  readr::read_delim(x$path, col_names = c('chr','start','end','value1'))
+  })
+bed_names <- lapply(bed_ents, function(x) {stringr::str_remove(x$properties$name, ".bed")}) 
+names(beds) <- bed_names
+reorder_beds <- c("28cNF", "i28cNF", "cNF04.9a", "icNF04.9a", "cNF00.10a", "icNF00.10a", "cNF97.2a", "icNF97.2a", "cNF97.2b", "icNF97.2b", "cNF98.4c", "icNF98.4c", "cNF98.4d", "icNF98.4d")
+beds <- beds[reorder_beds]
+
+
+```
+
+
+## Plot circos plots of CNV vs gene expression
+
+The inner circle (red) shows CNV as measured by Control-FREEC. "Taller" red regions represent gains of copies, while "shorter" red regions represent losses of copies.The majority of all cell lines have ~2 copies throughout the chromosomes, though there are small local regions of apparent copy number alterations. 
+
+The outer circle (blue) shows the log 10 transformed number of counts for each gene identified in the RNAseq data, with each gene aligned approximately to the genomic region that encodes it. As expected, telomeric and centromeric regions have reduced transcription/associated gene expression, as do Y chromosome genes in cell lines that have no copies of this chromosome. However, other large "deletions" indicated by our analyses, such as chr4 in cell line 28cNF do not lack transcription of genes in these regions, suggesting that these deletions are likely an artifact and not real CNVs.   
+
+```{r}
+for(i in unique(counts_tidy_2$cell_line)){
+  counts_bed <- counts_tidy_2 %>% filter(cell_line == i) %>% 
+    dplyr::select(chromosome_name, start_position, end_position, counts) %>% 
+    set_names(c("chr", "start", "end", "value1")) %>% 
+    mutate(chr = paste0("chr", chr)) %>% 
+    mutate(value1 = log10(value1+1))
+  
+  cnv_bed <- beds[[i]] %>% 
+    mutate(value1 = log10(value1+1))
+  
+  circos.initializeWithIdeogram(species = "hg38") 
+ 
+  circos.genomicTrackPlotRegion(counts_bed, numeric.column = c("value1"), 
+    panel.fun = function(region, value, ...) {
+        circos.genomicPoints(region, value, pch = 20, cex = 0.1, col = '#003554')
+    })
+  
+  circos.genomicTrackPlotRegion(cnv_bed, numeric.column = c("value1"), 
+    panel.fun = function(region, value, ...) {
+        circos.genomicLines(region, value, col = "#FC6471", area = T)
+    })
+  
+  title(i)
+}
+```
+
+Plot again, but this time to save PDFs. 
+
+```{r}
+for(i in unique(counts_tidy_2$cell_line)){
+  counts_bed <- counts_tidy_2 %>% filter(cell_line == i) %>% 
+    dplyr::select(chromosome_name, start_position, end_position, counts) %>% 
+    set_names(c("chr", "start", "end", "value1")) %>% 
+    mutate(chr = paste0("chr", chr)) %>% 
+    mutate(value1 = log10(value1+1))
+  
+  cnv_bed <- beds[[i]] %>% 
+    mutate(value1 = log10(value1+1))
+  
+  filename <- glue::glue("../figures/{i}_cnv_circos.pdf")
+
+  pdf(filename)
+  
+  circos.initializeWithIdeogram(species = "hg38") 
+ 
+  circos.genomicTrackPlotRegion(counts_bed, numeric.column = c("value1"), 
+    panel.fun = function(region, value, ...) {
+        circos.genomicPoints(region, value, pch = 20, cex = 0.1, col = '#003554')
+    })
+  
+  circos.genomicTrackPlotRegion(cnv_bed, numeric.column = c("value1"), 
+    panel.fun = function(region, value, ...) {
+        circos.genomicLines(region, value, col = "#FC6471", area = T)
+    })
+  
+  title(i)
+  
+  dev.off()
+}
+```
+
+
+

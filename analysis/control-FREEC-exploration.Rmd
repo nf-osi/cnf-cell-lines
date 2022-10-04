@@ -19,11 +19,7 @@ output:
 
 This notebook looks at the results from Control-FREEC, which allows us to estimate CNVs from WGS data generated with the cNF cell lines without WGS data from patient-matched tumor control tissue/cells.
 
-# Quick and dirty plot of results 
-
-First, let's just plot the CNVs that appear to be significant, using a quick and dirty method: plotting lines for each CNV region where the x-axis is the location in the chromosome, and the y-axis is the estimated copy number. 
-
-This doesn't faithfully represent the differing lengths of each chromosome, but it's an easy first pass. 
+First, let's get the dat and order the samples in the way we want them to show up on the final plot (e.g. paired cell lines together, primary, then immortalized.)
 
 ```{r echo=TRUE, message=FALSE, warning=FALSE}
 library(synapser)
@@ -31,32 +27,29 @@ library(dplyr)
 library(ggplot2)
 synLogin()
 
-query <- synTableQuery("SELECT * FROM syn35892401.1")$asDataFrame()
 
+query <- synTableQuery("SELECT * FROM syn35928271.2")$asDataFrame() 
 
-data <- lapply(query$id, function(x){
- fn <- synGet(x)$properties$name
-  
- df <- synGet(x)$path %>% 
-   readr::read_delim() %>% 
-   dplyr::mutate(modelSystemName = stringr::str_remove(fn, ".pileup_CNVs.p.value.txt")) 
-        
-}) %>% dplyr::bind_rows()
+bed_ents <- lapply(query$id, synGet)
 
-dat <- data %>% 
-  mutate(fdr = p.adjust(KolmogorovSmirnovPvalue, method = 'fdr')) %>% 
-  filter(fdr < 0.05)
+beds <- lapply(bed_ents, function(x){
+  readr::read_delim(x$path, col_names = c('chr','start','end','value1'))
+  })
 
-ggplot(data = dat) + 
-  geom_segment(aes(x = start, xend = end, y = `copy number`, yend= `copy number`)) +
-  facet_grid(modelSystemName~chr) +
-  ylim(-1, 10)
+bed_names <- lapply(bed_ents, function(x) {stringr::str_remove(x$properties$name, ".bed")}) 
+
+names(beds) <- bed_names
+
+reorder_beds <- c("28cNF", "i28cNF", "cNF04.9a", "icNF04.9a", "cNF00.10a", "icNF00.10a", "cNF97.2a", "icNF97.2a", "cNF97.2b", "icNF97.2b", "cNF98.4c", "icNF98.4c", "cNF98.4d", "icNF98.4d")
+
+beds <- beds[reorder_beds]
 
 ```
 
 # Genome level heatmap of CNVs
 
-Now, let's adapt a guide from the [ComplexHeatmap manual](https://jokergoo.github.io/ComplexHeatmap-reference/book/genome-level-heatmap.html) to plot a heatmap that faithfully represents the relative chromosome lengths and is a nicer presentation of the results. We can grab the BED files from Synapse, use a function to average the copy number across each region using window approach where each window is 1e5 bp long.  
+Now, let's adapt a guide from the [ComplexHeatmap manual](https://jokergoo.github.io/ComplexHeatmap-reference/book/genome-level-heatmap.html) to plot a heatmap that faithfully represents the relative chromosome lengths and is a nicer presentation of the results. We can grab the BED files from Synapse, use a function to average the copy number across each region using window approach where each window is 1e4 bp long.  
+
 
 ```{r echo=TRUE, message=FALSE, warning=FALSE}
 library(ComplexHeatmap)
@@ -65,6 +58,17 @@ library(GenomicRanges)
 library(EnrichedHeatmap)
 
 ## Modified from https://jokergoo.github.io/ComplexHeatmap-reference/book/genome-level-heatmap.html?q=genome#genome-level-heatmap
+
+#In average_in_window() function, there are following arguments:
+#window: A GRanges object of the genomic windows.
+# gr: A GRanges object of the genomic signals.
+# v: A vector or a matrix. This is the value associated with gr and it should have the same length or nrow as gr. v can be numeric or character. If it is missing or NULL, a value of one is assign to every region in gr. If v is numeric, it can be a vector or a matrix, and if v is character, it can only be a vector.
+# method: Method to summarize the signals for every genomic window.
+# empty_v: The default value for the window if no region in gr overlaps to it.
+
+# The function returns a matrix with the same row length and order as window.
+# Note, this function is "adapted from HilbertCurve package since there is similar task there."
+
 
 average_in_window = function(window, gr, v, method = "weighted", empty_v = NA) {
 
@@ -146,21 +150,130 @@ average_in_window = function(window, gr, v, method = "weighted", empty_v = NA) {
     return(u)
 }
 
-query <- synTableQuery("SELECT * FROM syn35928271.2")$asDataFrame() 
+chr_df = read.chromInfo(species = 'hg38')$df
+chr_df = chr_df[chr_df$chr %in% paste0("chr", 1:22), ]
+chr_gr = GRanges(seqnames = chr_df[, 1], ranges = IRanges(chr_df[, 2] + 1, chr_df[, 3]))
+chr_gr
 
-bed_ents <- lapply(query$id, synGet)
+chr_window = makeWindows(chr_gr, w = 1e4)
+chr_window
 
-beds <- lapply(bed_ents, function(x){
-  readr::read_delim(x$path, col_names = c('chr','start','end','value1'))
-  })
+num_mat = NULL
+for(i in 1:14) {
+    bed = beds[[i]]
+    gr_cnv = GRanges(seqnames = bed$chr, ranges = IRanges(bed$start, bed$end))
 
-bed_names <- lapply(bed_ents, function(x) {stringr::str_remove(x$properties$name, ".bed")}) 
+    num_mat = cbind(num_mat, average_in_window(chr_window, gr_cnv, bed[, 4]))
+}
 
-names(beds) <- bed_names
+colnames(num_mat) <- reorder_beds
 
-reorder_beds <- c("28cNF", "i28cNF", "cNF04.9a", "icNF04.9a", "cNF00.10a", "icNF00.10a", "cNF97.2a", "icNF97.2a", "cNF97.2b", "icNF97.2b", "cNF98.4c", "icNF98.4c", "cNF98.4d", "icNF98.4d")
+chr = as.vector(seqnames(chr_window))
+chr_level = paste0("chr", 1:22)
+chr = factor(chr, levels = chr_level)
 
-beds <- beds[reorder_beds]
+ha_col <- HeatmapAnnotation(Status = rep(c("primary", "immortalized"),7),
+                            col = list(Status = c("primary" = "#2A7F62", "immortalized" = "#F6BD60")))
+
+ht_list <- Heatmap(num_mat, name = "Copy\nNumber", 
+                  col = colorRamp2(c(0, 2, 4, 8), c("#0068EF", "#FFFFFF", "#FF729F", "#CC0041")),
+                  row_split = chr, 
+                  cluster_rows = FALSE, 
+                  cluster_columns = FALSE,
+                  row_title_rot = 0, 
+                  row_title_gp = gpar(fontsize = 10), 
+                  border = TRUE,
+                  row_gap = unit(3, "points"),
+                  width = 1, 
+                  height = 1,
+                  heatmap_height = 0.9,
+                  heatmap_width = 0.9,
+                  bottom_annotation = ha_col) 
+
+```
+
+## Results
+
+The results match the previous results, with a couple of cell lines appearing to have large deletions in a couple of chromosomes. However, because these deletions are (1) very large, and (2) not consistent between the primary and immortalized cell lines and (3) cNF are thought to be pretty quiet, I suspect that these are probably a sequencing artifact. While not in scope for this paper, it might be worth trying some other CNV calling methods, especially if we can find patient-matched non-tumor WGS data. 
+
+```{r fig.height=15, fig.width=6}
+## this fails to render on my work mac for whatever reason, but seems to be ok in r 3.6 on a a linux instance
+draw(ht_list, merge_legend = TRUE)
+
+pdf("../figures/cnv_heatmap_1e4.pdf", width = 6, height = 15)
+draw(ht_list, merge_legend = TRUE)
+dev.off()
+
+```
+
+Out of curiosity, let's try a couple of other window sizes, larger and smaller:
+
+5e3
+
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+
+
+
+chr_df = read.chromInfo(species = 'hg38')$df
+chr_df = chr_df[chr_df$chr %in% paste0("chr", 1:22), ]
+chr_gr = GRanges(seqnames = chr_df[, 1], ranges = IRanges(chr_df[, 2] + 1, chr_df[, 3]))
+chr_gr
+
+
+chr_window = makeWindows(chr_gr, w = 5e3)
+
+chr_window
+
+num_mat = NULL
+
+for(i in 1:14) {
+    bed = beds[[i]]
+    gr_cnv = GRanges(seqnames = bed$chr, ranges = IRanges(bed$start, bed$end))
+
+    num_mat = cbind(num_mat, average_in_window(chr_window, gr_cnv, bed[, 4]))
+}
+
+colnames(num_mat) <- reorder_beds
+
+chr = as.vector(seqnames(chr_window))
+chr_level = paste0("chr", 1:22)
+chr = factor(chr, levels = chr_level)
+
+ha_col <- HeatmapAnnotation(Status = rep(c("primary", "immortalized"),7),
+                            col = list(Status = c("primary" = "#2A7F62", "immortalized" = "#F6BD60")))
+
+ht_list <- Heatmap(num_mat, name = "Copy\nNumber", 
+                  col = colorRamp2(c(0, 2, 4, 8), c("#0068EF", "#FFFFFF", "#FF729F", "#CC0041")),
+                  row_split = chr, 
+                  cluster_rows = FALSE, 
+                  cluster_columns = FALSE,
+                  row_title_rot = 0, 
+                  row_title_gp = gpar(fontsize = 10), 
+                  border = TRUE,
+                  row_gap = unit(3, "points"),
+                  width = 1, 
+                  height = 1,
+                  heatmap_height = 0.9,
+                  heatmap_width = 0.9,
+                  bottom_annotation = ha_col) 
+
+```
+
+
+```{r fig.height=15, fig.width=6}
+
+draw(ht_list, merge_legend = TRUE)
+
+
+pdf("../figures/cnv_heatmap_5e3.pdf", width = 6, height = 15)
+draw(ht_list, merge_legend = TRUE)
+dev.off()
+
+```
+
+1e5 
+
+```{r echo=TRUE, message=FALSE, warning=FALSE}
 
 
 chr_df = read.chromInfo(species = 'hg38')$df
@@ -189,7 +302,7 @@ ha_col <- HeatmapAnnotation(Status = rep(c("primary", "immortalized"),7),
                             col = list(Status = c("primary" = "#2A7F62", "immortalized" = "#F6BD60")))
 
 ht_list <- Heatmap(num_mat, name = "Copy\nNumber", 
-                  col = colorRamp2(c(-1, 2, 4), c("#56CBF9", "#FFFFFF", "#FF729F")),
+                  col = colorRamp2(c(0, 2, 4, 8), c("#0068EF", "#FFFFFF", "#FF729F", "#CC0041")),
                   row_split = chr, 
                   cluster_rows = FALSE, 
                   cluster_columns = FALSE,
@@ -202,24 +315,20 @@ ht_list <- Heatmap(num_mat, name = "Copy\nNumber",
                   heatmap_height = 0.9,
                   heatmap_width = 0.9,
                   bottom_annotation = ha_col) 
-
 ```
 
-## Results
 
-The results match the previous results, with a couple of cell lines appearing to have large deletions in a couple of chromosomes. However, because these deletions are (1) very large, and (2) not consistent between the primary and immortalized cell lines and (3) cNF are thought to be pretty quiet, I suspect that these are probably a sequencing artifact. While not in scope for this paper, it might be worth trying some other CNV calling methods, especially if we can find patient-matched non-tumor WGS data. 
-
-```{r fig.height=10, fig.width=6}
+```{r fig.height=15, fig.width=6}
 
 draw(ht_list, merge_legend = TRUE)
 
 
-pdf("../figures/cnv_heatmap.pdf")
+pdf("../figures/cnv_heatmap_1e5.pdf", width = 6, height = 15)
+
 draw(ht_list, merge_legend = TRUE)
 dev.off()
 
 ```
-
 
 ```{r}
 
