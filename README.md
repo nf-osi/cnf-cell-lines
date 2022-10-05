@@ -1,28 +1,16 @@
 
-# Biomedical Data Science Project Template
-What this project is: A template project for biomedical data science projects with template R markdown files.
+# Genetic Studies of Neurofibromatosis - Cutaneous Neurofibroma Cell Lines 
 
-What this project isn't: A codebase for running analyses.
+NF1 cutaneous neurofibromas (cNFs) have some similarities to non-cutaneous (plexiform) neurofibromas, but there are also differences whose molecular bases are not well characterized. There is also heterogeneity within cNFs, e.g. NF1 mutations and phenotypes. To improve our understanding of cNF biology, we will develop characterized cNF Schwann cell two-hit cultures/lines, and perform exome RNA sequence analysis in these resources as well as primary tissue (intact and isolated single cells). Heterozygous Schwann cell lines will also be developed and studied from some of the same tumors.
 
-## Template structure
+See the companion datasets on the [NF Data Portal](https://nf.synapse.org/Explore/Studies/DetailsPage/Details?studyId=syn11374339). 
+
+## Sub-directories
+
 `/analysis`: Contains all code notebooks and rendered `html` notebooks.
 
-`/figures`: You could, if you like, store rendered results from your analyses here, so that you can find them when it's time to publish!
+`/figures`: Figures that were under consideration for inclusion in the published manuscript. 
 
-`/data`: Where is `/data`? It's a better practice to store the data on Synapse, in the challenge project, so that others can reference the data if they so choose. 
+## renv
 
-## Using github.io
-As seen in the table below, you can optionally and ideally knit your code notebooks to html so that they can be displayed on github.io. In order to set this up, you should enable Github Pages in the Settings for your project, and configure it to use the `gh-pages` branch as source. Once you've done this, any `html` files in the `gh-pages` branch will be rendered on github.io. 
-
------
-
-# Your Project Name Here
-You should insert the name and description of your Project here, with a link to external resources related to this project. 
-
-## Analyses
-Here's a summary of the analyses we've run so far. 
-
-|analysis|description|
-|--|--|
-|[Determining top performers](https://sage-bionetworks-challenges.github.io/challenge-analysis/analysis/determine-top-performers.html)|A simple description of a bootstrap analysis to determine the top performers in a challenge.|
-|[Comparison to baseline/comparator model](https://sage-bionetworks-challenges.github.io/challenge-analysis/analysis/compare-models-to-baseline.html)|A simple description of a bootstrap analysis to determine the performance of participants relative to a comparator model.|
+All analysis was performed in R 4.2.1. You can re-create the environment (e.g. the versions of the packages we used) with `renv` package and the lockfile provided in this repository. 
