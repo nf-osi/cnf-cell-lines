@@ -46,15 +46,14 @@ library(ggfortify)
 import synapseclient
 syn = synapseclient.Synapse()
 
-syn.login(email= "jineta.banerjee",
-                   authToken= "")
+syn.login()
 
 ```
 
 ```{python get_data, eval=TRUE, echo=FALSE, results='hide', message=FALSE, warning=FALSE, include=FALSE}
 
 # get counts file
-#syn.get("syn29532377", downloadLocation = "~/cnf-cell-lines/data")
+syn.get("syn29532377", downloadLocation = "~/cnf-cell-lines/data")
 
 # get metadata
 query =  "SELECT * FROM syn11601459 where assay = 'rnaSeq' and fileFormat = 'sf' and name = 'quant.sf'"
@@ -70,7 +69,7 @@ Fastq files from RNA sequencing data in this [dataset](https://www.synapse.org/#
 
 ```{r gene_counts, echo=FALSE, eval=TRUE, results='hide', message=FALSE, fig.height=10, fig.width=10}
 
-cts <- as.data.frame(read.csv("/Users/jineta/git/gitrepo/cnf-cell-lines/data/salmon.merged.gene_counts.tsv", sep="\t", row.names="gene_id")) 
+cts <- as.data.frame(read.csv("~/cnf-cell-lines/data/salmon.merged.gene_counts.tsv", sep="\t", row.names="gene_id")) 
 colnames(cts)[2] <- "28cNF"
 colnames(cts)[12] <- "i28cNF"
 

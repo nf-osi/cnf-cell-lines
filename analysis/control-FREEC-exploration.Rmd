@@ -186,8 +186,9 @@ ht_list <- Heatmap(num_mat, name = "Copy\nNumber",
                   row_gap = unit(3, "points"),
                   width = 1, 
                   height = 1,
-                  heatmap_height = 0.9,
-                  heatmap_width = 0.9,
+                  heatmap_height = unit(1,"npc"),
+                  heatmap_width = unit(1,"npc"),
+                  use_raster = F,
                   bottom_annotation = ha_col) 
 
 ```
@@ -253,8 +254,9 @@ ht_list <- Heatmap(num_mat, name = "Copy\nNumber",
                   row_gap = unit(3, "points"),
                   width = 1, 
                   height = 1,
-                  heatmap_height = 0.9,
-                  heatmap_width = 0.9,
+                  heatmap_height = unit(1,"npc"),
+                  heatmap_width = unit(1,"npc"),
+                  use_raster = F,
                   bottom_annotation = ha_col) 
 
 ```
@@ -312,8 +314,9 @@ ht_list <- Heatmap(num_mat, name = "Copy\nNumber",
                   row_gap = unit(3, "points"),
                   width = 1, 
                   height = 1,
-                  heatmap_height = 0.9,
-                  heatmap_width = 0.9,
+                  heatmap_height = unit(1,"npc"),
+                  heatmap_width = unit(1,"npc"),
+                  use_raster = F,
                   bottom_annotation = ha_col) 
 ```
 
