@@ -70,7 +70,7 @@ syn.get("syn29531457", downloadLocation = "~/cnf-cell-lines/data")
 
 Fastq files from RNA sequencing data in this [dataset](https://www.synapse.org/#!Synapse:syn29542674/datasets/) were processed using standardized processing tools and parameters as listed in [this link](https://sagebionetworks.jira.com/wiki/spaces/NPD/pages/2595913729/Nextflow+Data+Processing+Configuration).
 
-First, let's take some of the QC data from the pipeline to plot the sample similarity (Euclidean distance, calculated with DESeq2 rlog):
+First, let's take some of the QC data from the pipeline to plot the sample similarity (Euclidean distance, calculated with https://github.com/nf-core/rnaseq/blob/master/bin/deseq2_qc.r):
 
 
 ```{r sample_distance, echo=FALSE, eval=TRUE, results='hide', message=FALSE}
