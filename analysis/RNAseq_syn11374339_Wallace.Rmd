@@ -59,13 +59,44 @@ syn.get("syn29532377", downloadLocation = "~/cnf-cell-lines/data")
 query =  "SELECT * FROM syn11601459 where assay = 'rnaSeq' and fileFormat = 'sf' and name = 'quant.sf'"
 metadata = syn.tableQuery(query).asDataFrame() 
 
+# get distances from pipeline qc
+syn.get("syn29531457", downloadLocation = "~/cnf-cell-lines/data")
+
 ```
 
 &nbsp;
 
 ### RNA sequencing data from project
 
-Fastq files from RNA sequencing data in this [dataset](https://www.synapse.org/#!Synapse:syn29542674/datasets/) were processed using standardized processing tools and parameters as listed in [this link](https://sagebionetworks.jira.com/wiki/spaces/NPD/pages/2595913729/Nextflow+Data+Processing+Configuration). The raw counts of transcripts identified in the files were analyzed as follows:
+Fastq files from RNA sequencing data in this [dataset](https://www.synapse.org/#!Synapse:syn29542674/datasets/) were processed using standardized processing tools and parameters as listed in [this link](https://sagebionetworks.jira.com/wiki/spaces/NPD/pages/2595913729/Nextflow+Data+Processing+Configuration).
+
+First, let's take some of the QC data from the pipeline to plot the sample similarity (Euclidean distance, calculated with DESeq2 rlog):
+
+
+```{r sample_distance, echo=FALSE, eval=TRUE, results='hide', message=FALSE}
+
+distances <- read_delim('~/cnf-cell-lines/data/deseq2.sample.dists.txt') %>% 
+  dplyr::rename("28cNF"="X28NF", "i28cNF"="i28NF") %>% 
+  mutate(sample = case_when(sample=="X28NF"~"28cNF", 
+                            sample=="i28NF"~"i28cNF",
+                            sample!="X28NF"|sample!="i28NF" ~ sample)) %>% 
+  column_to_rownames("sample")
+
+p <- pheatmap(distances, 
+         color = viridis::mako(1000, direction = -1), 
+         cellwidth = 15, 
+         cellheight = 15,
+         clustering_method = "ward.D2")
+
+p
+
+pdf("../figures/rnaseq_euclidean_difference.pdf", height = 10, width = 10)
+p
+dev.off()
+```
+
+
+Then, the raw counts of transcripts identified in the files were analyzed as follows:
 
 ```{r gene_counts, echo=FALSE, eval=TRUE, results='hide', message=FALSE, fig.height=10, fig.width=10}
 
@@ -132,7 +163,7 @@ no_dupes_gene_mat <- no_dupes_gene_mat %>%
 
 First a principal component analysis was performed to see if there were evident clustering of non-immortalized and immortalized cell lines. The non-immortalized and immortalized cell lines were found to be uniformly distributed. The PC1 and PC2 only accounted for 18-21% of variance in the samples suggesting that the samples were not vastly different from each other. Since most of the samples were cNF samples, this suggests that no significant differences were noted between the different cNF samples. Since there were only 3 pNF samples, this analysis was underpowered to capture any differences between cNF and pNF samples. 
 
-```{r TMM-LCPM normalization, eval=TRUE, echo=FALSE, results='hide', message=FALSE, warning=FALSE, fig.height = 20, fig.width = 20}
+```{r TMM-LCPM normalization, eval=TRUE, echo=FALSE, results='hide', message=FALSE, warning=FALSE, fig.height = 20, fig.width = 10}
 
 # prepare for DGE analysis using edgeR and limma
 DGE.all <-DGEList(counts=no_dupes_gene_mat) 
@@ -157,7 +188,7 @@ results$specimen <- rownames(results)
   
 plot_data <- merge(results, metadata)
 
-#pdf("~/cnf-cell-lines/figures/PCA_092622.pdf", height = 20, width = 20)
+pdf("../figures/PCA_092622.pdf", height = 20, width = 20)
 plot_data %>% 
      ggplot(aes(x=PC1,
                y=PC2)) + 
@@ -176,10 +207,11 @@ plot_data %>%
               legend.position="right",
               panel.grid = element_blank(),
               panel.background = element_rect(fill = "white"))
-#dev.off()
+dev.off()
 
 
 ```
+
 
 &nbsp;
 
@@ -257,7 +289,7 @@ cNFvsicNF_ordered <-cNFvsicNF %>%
   dplyr::select(c(logFC, adj.P.Val, threshold)) 
 cNFvsicNF_ordered$gene_name <- rownames(cNFvsicNF_ordered)
 
-#pdf("~/cnf-cell-lines/figures/volcanoplot_cNF_icNF_092622.pdf", width = 20, height = 20)
+pdf("../figures/volcanoplot_cNF_icNF_092622.pdf", width = 20, height = 20)
 ggplot(data=cNFvsicNF_ordered, aes(x=logFC, y=-log10(adj.P.Val))) +
   geom_point(aes(colour = threshold), alpha=0.3, size=8) +
   xlim(c(-10, 10)) + ylim(c(0, 2.5)) +
@@ -276,7 +308,7 @@ ggplot(data=cNFvsicNF_ordered, aes(x=logFC, y=-log10(adj.P.Val))) +
               legend.position="none",
               panel.grid = element_blank(),
               panel.background = element_rect(fill = "white")) 
-#dev.off()
+dev.off()
 
 ```
 
@@ -317,20 +349,20 @@ heatmap_1 <- pheatmap(heatmap_data %>%
                        width = 16, 
                        height = 8)
 
-#pdf("~/cnf-cell-lines/figures/DEG-heatmap_092622_4clusters.pdf", height = 20, width = 20)
+pdf("../figures/DEG-heatmap_092622_4clusters.pdf", height = 20, width = 20)
 heatmap_1
-#dev.off()
+dev.off()
 
-#pdf("~/cnf-cell-lines/figures/DEG-heatmap_092622_all_sig_genes_dendrogram.pdf", height = 20, width = 20)
+pdf("../figures/DEG-heatmap_092622_all_sig_genes_dendrogram.pdf", height = 20, width = 20)
 plot(heatmap_1$tree_row, cex = 0.7)
 abline(h=100, col="red", lty = 2, lwd = 2)
-#dev.off()
+dev.off()
 
 # dendrogram with the samples
-#pdf("~/cnf-cell-lines/figures/DEG-heatmap_092622_all_samples_dendrogram.pdf", height = 20, width = 20)
+pdf("../figures/DEG-heatmap_092622_all_samples_dendrogram.pdf", height = 20, width = 20)
 plot(heatmap_1$tree_col, cex = 3)
 abline(h=80, col="red", lty = 2, lwd = 2)
-#dev.off()
+dev.off()
 
 # Make subclusters
 heatmap_cluster <- sort(cutree(heatmap_1$tree_row, h=100))
@@ -353,9 +385,7 @@ heatmap_cluster <- sort(cutree(heatmap_1$tree_row, h=100))
   
 #### All significantly differentially expressed genes:
 
-```{r pathway-1, echo=F, eval=TRUE, fig.height=10, fig.width=10}
-
-
+```{r pathway-1, echo=F, eval=TRUE, fig.height=20, fig.width=20}
 
 make_gprofiler_plots <- function(cluster_genes){
   
